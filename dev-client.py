@@ -3,7 +3,8 @@ import sys
 import select
 
 s = socket.socket()
-host = '192.168.15.8'
+# host = '192.168.15.8'
+host = '10.112.2.7'
 port = 9999
 
 s.connect((host, port))

@@ -12,13 +12,15 @@ def remove_connection(connection, address):
     else:
         logging.debug('Not found connection! | IP ' + address[0] + ' | PORT ' + str(address[1]))
 
+
 def handle_join_action(user, payload):
-    hosts = list(filter(lambda user: users_queue[user]['room']['name'] == payload['name']))
-    if len(hosts) == 0:
+    # hosts = list(filter(lambda user: users_queue[user]['room']['name'] == payload['name']))
+    host = users_queue[user] if user in users_queue.keys() else None
+    if not host:
         logging.debug('Room not found')
         user.send('Room not found')
     else:
-        host = hosts[0]
+        # map to new dict form
         if host['room']['password'] == payload['password']:
             logging.info('Creating new room')
             lock.acquire()
@@ -34,18 +36,18 @@ def queue_thread():
     logging.info('Queue initiated!')
     messenger = message.GameMessage()
     while True:
-        logging.debug('Checking new connections data')
+        # logging.debug('Checking new connections data')
         user_connections, _, _ = select.select(users_queue.keys(), [], [], 1.0)
         for user in user_connections:
             try:
                 data = user.recv(1024)
                 if data:
                     module, payload = messenger.decode(data)
-                    logging.info('Received data | Module: ' + module + ' | payload: ' + payload)
+                    logging.debug('Received data | Module: ' + module + ' | payload: ' + str(payload))
                     if module == 'ROOM' and payload['action'] == 'create':
-                        queue.acquire()
+                        lock.acquire()
                         users_queue[user]['room'] = { 'name': payload['name'], 'password': payload['password'] }
-                        queue.release()
+                        lock.release()
                         logging.info('Creation request accepts | IP ' + users_queue[user]['addr'][0])
                     if module == 'ROOM' and payload['action'] == 'join':
                         logging.info('Checking request to join a room | IP ' + users_queue[user]['addr'][0])
