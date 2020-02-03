@@ -1,4 +1,5 @@
 import logging
+from threading import Thread
 from . import message
 
 class Chat:
@@ -7,12 +8,14 @@ class Chat:
         self.messages = []
 
     def broadcast_message(self, message_data, client):
+        self.messages.append(message_data)
         for user in self.users:
             if user != client:
                 user.send(message)
 
-class Room:
+class Room(Thread):
     def __init__(self, players):
+        Thread.__init__(self)
         self.players = players
         self.chat = Chat(players)
         self.message = message.GameMessage()
@@ -36,3 +39,6 @@ class Room:
         if connection in self.players:
             self.players.remove(connection)
             logging.info('Removed player!')
+
+    def run(self):
+        logging.debug('Room created')
