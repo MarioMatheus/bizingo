@@ -7,7 +7,7 @@ class GameMessage:
         module, payload = data.decode('utf-8').split('|')
         str_data = str(
             payload
-        ).replace(' ', '').replace('{', '').replace('}', '').split(',')
+        ).replace('{', '').replace('}', '').split(',')
         payload = {}
         for attr in str_data:
             key, value = attr.split(':')
