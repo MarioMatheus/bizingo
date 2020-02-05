@@ -17,28 +17,33 @@ class Room(Thread):
     def __init__(self, players):
         Thread.__init__(self)
         self.players = players
-        self.chat = Chat(players)
+        self.chat = Chat(players.keys())
         self.message = message.GameMessage()
     
-    def receive_data(self, data, from_client):
+    def receive_data(self, data, from_player):
         module, payload = self.message.decode(data)
         if module == 'CHAT':
-            self.receive_chat_msg(payload, from_client)
+            self.receive_chat_msg(payload, from_player)
         elif module == 'MATCH':
             pass
 
-    def receive_chat_msg(self, payload, client):
+    def receive_chat_msg(self, payload, player):
         try:
             message_data = self.message.encode(payload, 'CHAT')
-            self.chat.broadcast_message(message_data, client)
+            self.chat.broadcast_message(message_data, player)
+            logging.info('Chat msg sent from player ' + self.players[player]['name'] + ' | IP ' + self.players[player]['addr'][0])
         except:
-            client.close()
-            self.remove_connection(client)
+            player.close()
+            self.remove_player(player)
 
-    def remove_connection(self, connection):
-        if connection in self.players:
-            self.players.remove(connection)
-            logging.info('Removed player!')
+    def remove_player (self, player):
+        if player in self.players:
+            removed_player = self.players.pop(player)
+            logging.info('Removed player ' + removed_player['name'] + ' | IP ' + removed_player['addr'][0])
 
     def run(self):
-        logging.debug('Room created')
+        logging.debug(self.getName() + ' started')
+        while len(self.players) != 0:
+            player = list(self.players.keys())[0]
+            player.close()
+            self.remove_player(player)
