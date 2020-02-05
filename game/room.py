@@ -1,4 +1,5 @@
 import logging
+import select
 from threading import Thread
 from . import message
 
@@ -11,7 +12,7 @@ class Chat:
         self.messages.append(message_data)
         for user in self.users:
             if user != client:
-                user.send(message)
+                user.send(message_data)
 
 class Room(Thread):
     def __init__(self, players):
@@ -33,17 +34,29 @@ class Room(Thread):
             self.chat.broadcast_message(message_data, player)
             logging.info('Chat msg sent from player ' + self.players[player]['name'] + ' | IP ' + self.players[player]['addr'][0])
         except:
-            player.close()
-            self.remove_player(player)
+            logging.warning('Error to send message from player ' + self.players[player]['name'])
 
     def remove_player (self, player):
         if player in self.players:
             removed_player = self.players.pop(player)
             logging.info('Removed player ' + removed_player['name'] + ' | IP ' + removed_player['addr'][0])
 
+    def broadcast(self, message):
+        for player in self.players.keys():
+            player.send(self.message.encode(message, 'MATCH'))
+
     def run(self):
         logging.debug(self.getName() + ' started')
-        while len(self.players) != 0:
-            player = list(self.players.keys())[0]
-            player.close()
-            self.remove_player(player)
+        self.broadcast('Bem Vindo a Bizingo!')
+        while True:
+            read_connections, _, _ = select.select(list(self.players.keys()), [], [])
+            for player in read_connections:
+                try:
+                    message = player.recv(1024)
+                    if message:
+                        self.receive_data(message, from_player=player)
+                    else:
+                        return self.remove_player(player)
+                except:
+                    logging.warn('Some Exception occurred')
+                    continue
