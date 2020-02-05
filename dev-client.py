@@ -3,8 +3,8 @@ import sys
 import select
 
 s = socket.socket()
-# host = '192.168.15.8'
-host = '10.112.2.7'
+host = '192.168.15.4'
+# host = '10.112.2.7'
 port = 9999
 
 s.connect((host, port))
@@ -16,7 +16,11 @@ while True:
     for ipt in inputs:
         if ipt == s:
             message = ipt.recv(1024)
-            print(message.decode('utf-8'))
+            if message:
+                print(message.decode('utf-8'))
+            else:
+                s.close()
+                sys.exit()
         else:
             message = input()
             if message == 'quit':
