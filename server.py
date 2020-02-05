@@ -14,21 +14,27 @@ def remove_connection(connection, address):
 
 
 def handle_join_action(user, payload):
-    # hosts = list(filter(lambda user: users_queue[user]['room']['name'] == payload['name']))
-    host = users_queue[user] if user in users_queue.keys() else None
-    if not host:
+    def search_room(user_connection):
+        exists = users_queue[user_connection]['room']['name'] == payload['room']
+        return exists and user_connection != user
+
+    hosts = list(filter(search_room, users_queue.keys()))
+
+    if len(hosts) == 0:
         logging.debug('Room not found')
-        user.send('Room not found')
+        user.send(('Room ' + payload['name'] + ' not found').encode())
     else:
-        # map to new dict form
-        if host['room']['password'] == payload['password']:
+        host = hosts[0]
+        if users_queue[host]['room']['password'] == payload['password']:
             logging.info('Creating new room')
             lock.acquire()
-            users_queue.pop(host)
-            users_queue.pop(user)
+            host_data = users_queue.pop(host)
+            user_data = users_queue.pop(user)
             lock.release()
-            new_room = room.Room([ host['conn'], user ])
-            new_room.setName('Room: ' + host['room']['name'])
+            logging.debug(str(host_data))
+            host_room = host_data.pop('room')
+            new_room = room.Room({ host: host_data, user: user_data })
+            new_room.setName('Room: ' + host_room['name'])
             new_room.start()
 
 
@@ -46,11 +52,13 @@ def queue_thread():
                     logging.debug('Received data | Module: ' + module + ' | payload: ' + str(payload))
                     if module == 'ROOM' and payload['action'] == 'create':
                         lock.acquire()
-                        users_queue[user]['room'] = { 'name': payload['name'], 'password': payload['password'] }
+                        users_queue[user]['name'] = payload['name']
+                        users_queue[user]['room'] = { 'name': payload['room'], 'password': payload['password'] }
                         lock.release()
                         logging.info('Creation request accepts | IP ' + users_queue[user]['addr'][0])
                     if module == 'ROOM' and payload['action'] == 'join':
                         logging.info('Checking request to join a room | IP ' + users_queue[user]['addr'][0])
+                        users_queue[user]['name'] = payload['name']
                         handle_join_action(user, payload)
                 else:
                     logging.debug('To remove connection | IP ' + users_queue[user]['addr'][0] + ' | PORT ' + str(users_queue[user]['addr'][1]))
@@ -58,13 +66,13 @@ def queue_thread():
             except Exception as exception:
                 logging.warning(str(exception.with_traceback()))
             except:
-                logging.warning('Exception occured')
+                logging.warning('Exception occurred')
                 continue
 
 
 def append_in_queue(connection, address):
     lock.acquire()
-    users_queue[connection] = { 'addr': address, 'room': { 'name': '', 'password': '' } }
+    users_queue[connection] = { 'addr': address, 'name': '', 'room': { 'name': '', 'password': '' } }
     lock.release()
     logging.info('Connection added to queue | IP ' + address[0] + ' | PORT ' + str(address[1]))
     logging.debug('Queue: ' + str(list(map(lambda conn: users_queue[conn]['addr'][0], users_queue.keys()))))
