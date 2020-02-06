@@ -2,7 +2,7 @@ from game import message, room
 import socket
 import sys
 import threading
-import logging
+import logging, logging.handlers
 import select
 
 def remove_connection(connection, address):
@@ -108,10 +108,11 @@ def socket_accept():
 
 def configLogger():
     logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
-    fileHandler = logging.FileHandler('socketpy.log')
     consoleHandler = logging.StreamHandler(sys.stdout)
-    fileHandler.setFormatter(logFormatter)
     consoleHandler.setFormatter(logFormatter)
+    fileHandler = logging.handlers.TimedRotatingFileHandler('logs/bizingo', when='midnight', interval=1)
+    fileHandler.suffix = '%Y%m%d.log'
+    fileHandler.setFormatter(logFormatter)
     logging.basicConfig(level=logging.DEBUG, handlers=[fileHandler, consoleHandler])
 
 
