@@ -1,7 +1,7 @@
 
 class Match:
     def __init__(self, players):
-        self.turn = 1
+        self.turn = 0
         self.players = players
         self.board = [
                                     [0, 0, 0, 0, 0],
@@ -58,21 +58,36 @@ class Match:
         self.board[row1][col1] = self.board[row2][col2]
         self.board[row2][col2] = aux
 
+    def is_player_piece(self, player, piece):
+        player_index = self.players.index(player)
+        if player_index == 0 and (piece == 1 or piece == 10):
+            return True
+        if player_index == 1 and (piece == 2 or piece == 20):
+            return True
+        return False
+
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)
         player_turn = self.turn % 2
+
         if player_index != player_turn:
             raise Exception('Wait your turn')
+        if _from == to:
+            raise Exception('You cannot move to same position')
+
+        ori_row, ori_col = self.get_index_coordinate(_from)
+        if self.get_index_coordinate(to) not in self.get_adjacent_triangles(ori_row, ori_col):
+            raise Exception('You can only move to adjacent triangles')
+
         piece = self.get_piece_in_coodinate(_from)
-        if piece == 0 or piece % 2 != player_turn:
+        if piece == 0 or not self.is_player_piece(player, piece):
             raise Exception('You can only move your pieces')
         if self.get_piece_in_coodinate(to) != 0:
             raise Exception('You can only move pieces to empty triangles')
 
-        # if move to adjacent triangle
-        # if triangles has same types
-
         self.swap_triangles_content(_from, to)
+        # check custody capture
+        self.turn += 1
 
 
     
@@ -89,5 +104,6 @@ class Match:
 
         return description
 
-m = Match([])
-m.get_adjacent_triangles(8, 20)
+# m = Match(['P1', 'P2'])
+# m.turn = 1
+# m.move_piece('P2', 'F5', 'G5')
