@@ -20,7 +20,11 @@ class Match:
     def get_index_coordinate(self, coordinate):
         row_key, column = coordinate
         row = ord(row_key) - 65
-        return row, column
+        return row, int(column) - 1
+
+    def get_board_coordinate(self, row, column):
+        x = chr(row + 65)
+        return x + str(column+1)
 
     def get_piece_in_coodinate(self, coordinate):
         row, col = self.get_index_coordinate(coordinate)
@@ -28,6 +32,24 @@ class Match:
             return self.board[row][col]
         except:
             raise Exception('Invalid Coordinate')
+
+    def get_adjacent_triangles(self, row, column):
+        up_lenght = len(self.board[row])-2 if row - 1 < 0 else len(self.board[row-1])
+        col_offset_up = len(self.board[row]) - up_lenght
+        col_offset_bottom = len(self.board[row]) - up_lenght
+        col_offset_up -= 0 if row < 9 else -1 if row == 9 else -2
+        col_offset_bottom -= 0 if row < 8 else -1 if row == 8 else -4 if row == 9 else 0
+        adjacents = [
+            (row-1, column-col_offset_up), (row-1, column+2-col_offset_up),
+            (row, column-2), (row, column+2),
+            (row+1, column+2-col_offset_bottom), (row+1, column+4-col_offset_bottom)
+        ]
+        def validate_inside_board(index_path):
+            if index_path[0] >= len(self.board) or index_path[1] >= len(self.board[index_path[0]]):
+                return False
+            return index_path[0] >= 0 and index_path[1] >= 0
+
+        return list(filter(validate_inside_board, adjacents))
 
     def swap_triangles_content(self, coordinate1, coordinate2):
         row1, col1 = self.get_index_coordinate(coordinate1)
@@ -66,3 +88,6 @@ class Match:
             i += 1
 
         return description
+
+m = Match([])
+m.get_adjacent_triangles(8, 20)
