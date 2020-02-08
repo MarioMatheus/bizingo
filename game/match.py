@@ -2,6 +2,7 @@
 class Match:
     def __init__(self, players):
         self.turn = 0
+        self.game_over = False
         self.players = players
         self.board = [
                                     [0, 0, 0, 0, 0],
@@ -16,6 +17,13 @@ class Match:
             [0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
+
+    def get_player_pieces_count(self, player):
+        player_piece = self.players.index(player) + 1
+        count = 0
+        for row in self.board:
+            count += row.count(player_piece) + row.count(player_piece * 10)
+        return count
 
     def get_index_coordinate(self, coordinate):
         row_key = coordinate[0]
@@ -142,30 +150,17 @@ class Match:
 
     def check_custody_capture(self, player, coordinate):
         player_index = self.players.index(player)
-        row, column = self.get_index_coordinate(coordinate)
-        adjacent_triangles = self.get_adjacent_triangles(row, column)
-        adjacent_pieces = list(map(lambda c: self.get_board_coordinate(c[0], c[1]), adjacent_triangles))
-        coordinates = list(filter(lambda c: self.get_piece_in_coordinate(c) in [1, 10] if player_index == 0 else [2, 20], adjacent_pieces)) + [coordinate]
-        if len(coordinates) > 2:
-            for c in coordinates:
-                same_triangles_row = list(filter(lambda coord: c[0] == coord[0], coordinates))
-                same_triangles_row.sort(key=lambda c: int(c[1:]))
-                if (len(same_triangles_row) == 2 and
-                    True in list(map(lambda c: c[0] == chr(ord(same_triangles_row[0][0]) + (- 1 if player_index == 0 else 1)) and int(c[1]) in range(int(same_triangles_row[0][1]), int(same_triangles_row[1][1])+1), coordinates)) and
-                    self.get_piece_in_coordinate(same_triangles_row[0][0] + str(int(same_triangles_row[0][1]) + 1)) in [2, 20]
-                ):
-                    up_triangle_map = list(map(lambda c: c[0] == chr(ord(same_triangles_row[0][0]) + (- 1 if player_index == 0 else 1)) and int(c[1]) in range(int(same_triangles_row[0][1]), int(same_triangles_row[1][1])+1), coordinates))
-                    up_triangle = coordinates[up_triangle_map.index(True)]
-                    captured_piece_coordinate = same_triangles_row[0][0] + str(int(same_triangles_row[0][1]) + 1)
-                    captured_piece = self.get_piece_in_coordinate(captured_piece_coordinate)
-                    if captured_piece == 2 if player_index == 0 else 1:
-                        return self.remove_piece_from_board(captured_piece_coordinate, by=player)
-                    elif 10 if player_index == 0 else 20 in list(map(lambda c: self.get_piece_in_coordinate(c), same_triangles_row + [up_triangle])):
-                        return self.remove_piece_from_board(captured_piece_coordinate, by=player)
-                            
-        # check if player captured a piece
-        # check if player was captured
-        pass
+        to_capture_coordinates = self.get_enemies_triangles_coordinates_to_surround(coordinate)
+        for capture_coordinate in to_capture_coordinates:
+            if self.piece_is_surrounded(capture_coordinate):
+                return self.remove_piece_from_board(capture_coordinate, by=player)
+        if self.piece_is_surrounded(coordinate):
+            self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
+
+    def game_over_to(self, to):
+        # send game over message
+        self.game_over = True
+
 
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)
@@ -187,7 +182,11 @@ class Match:
             raise Exception('You can only move pieces to empty triangles')
 
         self.swap_triangles_content(_from, to)
-        self.check_custody_capture(player, to)
+        self.check_custody_capture(player, to)   
+
+        for p in self.players:
+            if self.get_player_pieces_count(p) == 2:
+                return self.game_over(to=p)
 
         self.turn += 1
 
@@ -205,7 +204,8 @@ class Match:
 
         return description
 
-# m = Match(['P1', 'P2'])
+m = Match(['P1', 'P2'])
+m.get_player_pieces_count('P1')
 # m.board[10][1] = 1
 # m.board[10][0] = 20
 # m.board[10][2] = 2

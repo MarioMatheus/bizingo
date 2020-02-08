@@ -92,13 +92,13 @@ class TestMatchMethods(unittest.TestCase):
         self.assertEqual(self.bizingo_match.get_enemies_triangles_coordinates_to_surround('K1'), ['J2', 'K2'])
         self.assertEqual(self.bizingo_match.get_enemies_triangles_coordinates_to_surround('I20'), ['H19', 'I19', 'I21'])
 
-    # def test_custody_capture(self):
-    #     self.bizingo_match.board[5][3] = 2
-    #     self.bizingo_match.check_custody_capture('P1', 'F3')
-    #     self.assertEqual(self.bizingo_match.board[5][3], 0)
-    #     self.bizingo_match.board[7][6] = 10
-    #     self.bizingo_match.check_custody_capture('P2', 'H8')
-    #     self.assertEqual(self.bizingo_match.board[7][6], 0)
+    def test_custody_capture(self):
+        self.bizingo_match.board[5][3] = 2
+        self.bizingo_match.check_custody_capture('P1', 'F3')
+        self.assertEqual(self.bizingo_match.board[5][3], 0)
+        self.bizingo_match.board[7][6] = 10
+        self.bizingo_match.check_custody_capture('P2', 'H8')
+        self.assertEqual(self.bizingo_match.board[7][6], 0)
 
 if __name__ == '__main__':
     unittest.main()
