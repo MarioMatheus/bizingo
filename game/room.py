@@ -1,7 +1,8 @@
 import logging
 import select
 from threading import Thread
-from . import message
+import random
+from . import message, match
 
 class Chat:
     def __init__(self, users):
@@ -18,7 +19,10 @@ class Room(Thread):
     def __init__(self, players):
         Thread.__init__(self)
         self.players = players
-        self.chat = Chat(players.keys())
+        players_keys = list(players.keys())
+        random.shuffle(players_keys)
+        self.bizingo_match = match.Match(players_keys)
+        self.chat = Chat(players_keys)
         self.message = message.GameMessage()
     
     def receive_data(self, data, from_player):
@@ -26,7 +30,7 @@ class Room(Thread):
         if module == 'CHAT':
             self.receive_chat_msg(payload, from_player)
         elif module == 'MATCH':
-            pass
+            self.receive_match_msg(payload, from_player)
 
     def receive_chat_msg(self, payload, player):
         try:
@@ -36,18 +40,34 @@ class Room(Thread):
         except:
             logging.warning('Error to send message from player ' + self.players[player]['name'])
 
+    def receive_match_msg(self, payload, player):
+        try:
+            if payload['action'] == 'move':
+                self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
+            if self.bizingo_match.game_over and self.bizingo_match.winner is not None:
+                self.broadcast({ 'event': 'Game Over!', 'winner': self.players[self.bizingo_match.winner]['name'] })
+                logging.info('Game Over!')
+        except Exception as identifier:
+            self.broadcast({ 'exception': str(identifier) }, to_player=player)
+            logging.warning('Exception occurred ' + str(identifier))
+
     def remove_player (self, player):
         if player in self.players:
             removed_player = self.players.pop(player)
             logging.info('Removed player ' + removed_player['name'] + ' | IP ' + removed_player['addr'][0])
 
-    def broadcast(self, message):
+    def broadcast(self, message, to_player=None):
+        if to_player is not None:
+            return to_player.send(self.message.encode(message, 'MATCH'))
         for player in self.players.keys():
             player.send(self.message.encode(message, 'MATCH'))
 
     def run(self):
         logging.debug(self.getName() + ' started')
-        self.broadcast('Bem Vindo a Bizingo!')
+        self.broadcast({
+            'info': 'Bem Vindo a Bizingo!',
+            'initial_player': self.players[self.bizingo_match.players[0]]['name']
+        })
         while True:
             read_connections, _, _ = select.select(list(self.players.keys()), [], [])
             for player in read_connections:

@@ -1,8 +1,10 @@
+import logging
 
 class Match:
     def __init__(self, players):
         self.turn = 0
         self.game_over = False
+        self.winner = None
         self.players = players
         self.board = [
                                     [0, 0, 0, 0, 0],
@@ -17,6 +19,11 @@ class Match:
             [0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0],
                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         ]
+
+    def broadcast(self, message):
+        for player in self.players:
+            from . import message
+            player.send(message.GameMessage().encode(message, 'MATCH'))
 
     def get_player_pieces_count(self, player):
         player_piece = self.players.index(player) + 1
@@ -78,9 +85,9 @@ class Match:
         return False
 
     def remove_piece_from_board(self, coordinate, by):
-        print('peca capturada pelo player ' + str(by) + ' em ' + coordinate)
         row, col = self.get_index_coordinate(coordinate)
         self.board[row][col] = 0
+        self.broadcast({ 'event': 'capture', 'coordinate': coordinate })
 
     def enemy_bottom_triangle_coordinate(self, coordinate):
         row, column = self.get_index_coordinate(coordinate)
@@ -158,14 +165,15 @@ class Match:
             self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
 
     def game_over_to(self, to):
-        # send game over message
+        winner_index = 0 if self.players.index(to) == 1 else 1
+        self.winner = self.players[winner_index]
         self.game_over = True
 
 
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)
         player_turn = self.turn % 2
-
+        
         if player_index != player_turn:
             raise Exception('Wait your turn')
         if _from == to:
@@ -182,6 +190,8 @@ class Match:
             raise Exception('You can only move pieces to empty triangles')
 
         self.swap_triangles_content(_from, to)
+        self.broadcast({ 'event': 'movement', 'from': _from, 'to': to })
+
         self.check_custody_capture(player, to)   
 
         for p in self.players:
@@ -203,11 +213,3 @@ class Match:
             i += 1
 
         return description
-
-m = Match(['P1', 'P2'])
-m.get_player_pieces_count('P1')
-# m.board[10][1] = 1
-# m.board[10][0] = 20
-# m.board[10][2] = 2
-# m.piece_is_surrounded('K2')
-# m.check_custody_capture('P2', 'H8')
