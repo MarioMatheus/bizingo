@@ -81,7 +81,7 @@ class BizingoGame(arcade.Window):
         super().on_draw()
 
         if self.dialogue_box_list[0].active and self.server_address:
-            x_offset = len(self.server_address) * 5.4
+            x_offset = len(self.server_address) * 6
             arcade.draw_text(self.server_address, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
         
         if not self.dialogue_box_list[0].active:
