@@ -8,41 +8,22 @@ SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Bizingo"
 
 class BizingoGame(arcade.Window):
-    """
-    Main application class.
-
-    NOTE: Go ahead and delete the methods you don't need.
-    If you do need a method, delete the 'pass' and replace it
-    with your own code. Don't leave 'pass' in this program.
-    """
 
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
 
-        # Set the working directory (where we expect to find files) to the same
-        # directory this .py file is in. You can leave this out of your own
-        # code, but it is needed to easily run the examples using "python -m"
-        # as mentioned at the top of this program.
         file_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(file_path)
-
-        arcade.set_background_color(arcade.color.AMAZON)
 
         self.pause = False
         # self.coin_list = None
         self.button_list = None
 
-    def setup(self):
-        # Create your sprites and sprite lists here
-        # self.coin_list = arcade.SpriteList()
-        # for i in range(10):
-        #     coin = arcade.Sprite(":resources:images/items/coinGold.png", 0.25)
-        #     coin.center_x = random.randrange(SCREEN_WIDTH)
-        #     coin.center_y = random.randrange(SCREEN_HEIGHT)
-        #     coin.change_y = -1
-        #     self.coin_list.append(coin)
+        self.half_width = self.width/2
+        self.half_height = self.height/2
+        self.theme = None
 
-        # Create our on-screen GUI buttons
+    def setup(self):
         self.button_list = []
 
         play_button = components.DefaultTextButton(60, 570, 'Connect',self.resume_program)
@@ -51,47 +32,66 @@ class BizingoGame(arcade.Window):
         quit_button = components.DefaultTextButton(60, 515, 'Quit', self.pause_program)
         self.button_list.append(quit_button)
 
+        arcade.set_background_color(arcade.color.ALICE_BLUE)
+        self.set_theme()
+        self.add_dialogue_box()
+        # self.add_text()
+        self.add_button()
+
+    def set_theme(self):
+        self.theme = arcade.gui.Theme()
+        self.set_dialogue_box_texture()
+        self.set_button_texture()
+        self.theme.set_font(24, arcade.color.WHITE)
+
+    def set_dialogue_box_texture(self):
+        dialogue_box = ":resources:gui_themes/Fantasy/DialogueBox/DialogueBox.png"
+        self.theme.add_dialogue_box_texture(dialogue_box)
+
+    def set_button_texture(self):
+        normal = ":resources:gui_themes/Fantasy/Buttons/Normal.png"
+        hover = ":resources:gui_themes/Fantasy/Buttons/Hover.png"
+        clicked = ":resources:gui_themes/Fantasy/Buttons/Clicked.png"
+        locked = ":resources:gui_themes/Fantasy/Buttons/Locked.png"
+        self.theme.add_button_textures(normal, hover, clicked, locked)
+
     def on_draw(self):
-        """
-        Render the screen.
-        """
-
         arcade.start_render()
+        super().on_draw()
 
-        # Draw the coins
-        # self.coin_list.draw()
-
-        # Draw the buttons
         for button in self.button_list:
             button.draw()
 
-    def on_update(self, delta_time):
-        """
-        All the logic to move, and the game logic goes here.
-        Normally, you'll call update() on the sprite lists that
-        need it.
-        """
+        for text in self.dialogue_box_list[0].text_list:
+            text.draw()
 
+    def on_update(self, delta_time):
         if self.pause:
             return
+        
+        if self.dialogue_box_list[0].active:
+            return
 
-        # self.coin_list.update()
+    def add_dialogue_box(self):
+        color = (220, 228, 255)
+        dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
+                                             self.half_height*1.5, color, self.theme)
+        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 40,
+                                   theme=self.theme)
+        dialoguebox.button_list.append(close_button)
+        message = "Hello I am a Dialogue Box."
+        dialoguebox.text_list.append(arcade.gui.TextBox(message, self.half_width, self.half_height/2, self.theme.font_color))
+        self.dialogue_box_list.append(dialoguebox)
 
-        # for coin in self.coin_list:
-        #     if coin.top < 0:
-        #         coin.bottom = SCREEN_HEIGHT
+    def add_button(self):
+        show_button = components.ShowDialogButton(self.dialogue_box_list[0], self.width-100, self.half_height, theme=self.theme)
+        self.button_list.append(show_button)
 
     def on_mouse_press(self, x, y, button, key_modifiers):
-        """
-        Called when the user presses a mouse button.
-        """
-        utils.check_mouse_press_for_buttons(x, y, self.button_list)
+        utils.check_mouse_press_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-        """
-        Called when a user releases a mouse button.
-        """
-        utils.check_mouse_release_for_buttons(x, y, self.button_list)
+        utils.check_mouse_release_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
 
     def pause_program(self):
         self.pause = True
