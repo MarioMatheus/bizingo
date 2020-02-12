@@ -89,29 +89,35 @@ class DefaultTextButton(TextButton):
         self.action_function()
 
 class ShowDialogButton(arcade.gui.TextButton):
-    def __init__(self, dialoguebox, x, y, width=200, height=50, text="Connection", theme=None):
+    def __init__(self, dialoguebox, x, y, width=200, height=50, text="Connection", on_will_active=None, theme=None):
         super().__init__(x, y, width, height, text, theme=theme)
         self.dialoguebox = dialoguebox
+        self.on_will_active = on_will_active
 
     def on_press(self):
         if not self.dialoguebox.active:
             self.pressed = True
 
     def on_release(self):
+        if self.on_will_active is not None:
+            self.on_will_active()
         if self.pressed:
             self.pressed = False
             self.dialoguebox.active = True
 
 class CloseDialogButton(arcade.gui.TextButton):
-    def __init__(self, dialoguebox, x, y, width=110, height=50, text="Close", theme=None):
+    def __init__(self, dialoguebox, x, y, width=110, height=50, text="Close", on_will_close=None, theme=None):
         super().__init__(x, y, width, height, text, theme=theme)
         self.dialoguebox = dialoguebox
+        self.on_will_close = on_will_close
 
     def on_press(self):
         if self.dialoguebox.active:
             self.pressed = True
 
     def on_release(self):
+        if self.on_will_close is not None:
+            self.on_will_close()
         if self.pressed and self.dialoguebox.active:
             self.pressed = False
             self.dialoguebox.active = False

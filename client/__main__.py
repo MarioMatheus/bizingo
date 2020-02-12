@@ -15,8 +15,12 @@ class BizingoGame(arcade.Window):
         file_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(file_path)
 
-        self.server_address = ""
+        self.server_address = ''
         self.connected = False
+
+        self.room_mode = 'Create'
+        self.room_name = ''
+        self.room_password = ''
 
         self.button_list = None
 
@@ -32,7 +36,8 @@ class BizingoGame(arcade.Window):
 
         self.add_menu_sprites()
         self.set_theme()
-        self.add_dialogue_box()
+        self.add_conn_dialogue_box()
+        self.add_room_dialogue_box()
         self.add_button()
 
     def add_menu_sprites(self):
@@ -59,7 +64,7 @@ class BizingoGame(arcade.Window):
         locked = ":resources:gui_themes/Fantasy/Buttons/Locked.png"
         self.theme.add_button_textures(normal, hover, clicked, locked)
 
-    def add_dialogue_box(self):
+    def add_conn_dialogue_box(self):
         color = (220, 228, 255)
         dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
                                              self.half_height*1.5, color, self.theme)
@@ -72,9 +77,27 @@ class BizingoGame(arcade.Window):
         dialoguebox.text_list.append(arcade.gui.TextLabel(message, self.half_width, self.half_height + 60, self.theme.font_color))
         self.dialogue_box_list.append(dialoguebox)
 
+    def add_room_dialogue_box(self):
+        color = (220, 228, 255)
+        dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
+                                             self.half_height*1.5, color, self.theme)
+        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 80, width=160, text=self.room_mode, theme=self.theme)
+        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 20, theme=self.theme)
+        dialoguebox.button_list.append(conn_button)
+        dialoguebox.button_list.append(close_button)
+        message = "Room Info"
+        
+        dialoguebox.text_list.append(arcade.gui.TextLabel(message, self.half_width, self.half_height + 60, self.theme.font_color))
+        self.dialogue_box_list.append(dialoguebox)
+
     def add_button(self):
-        show_button = components.ShowDialogButton(self.dialogue_box_list[0], self.width-150, self.half_height * 1.8, theme=self.theme)
-        self.button_list.append(show_button)
+        show_conn_button = components.ShowDialogButton(self.dialogue_box_list[0], self.width-150, self.half_height * 1.8, theme=self.theme)
+        create_room_button = components.ShowDialogButton(self.dialogue_box_list[1], self.half_width, self.half_height, text='Create', on_will_active=self.set_room_to_create_mode,theme=self.theme)
+        join_room_button = components.ShowDialogButton(self.dialogue_box_list[1], self.half_width, self.half_height + 80, text='Join', on_will_active=self.set_room_to_join_mode, theme=self.theme)
+        
+        self.button_list.append(show_conn_button)
+        self.button_list.append(create_room_button)
+        self.button_list.append(join_room_button)
 
     def on_draw(self):
         arcade.start_render()
@@ -84,17 +107,22 @@ class BizingoGame(arcade.Window):
             x_offset = len(self.server_address) * 6
             arcade.draw_text(self.server_address, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
         
-        if not self.dialogue_box_list[0].active:
+        if self.dialogue_box_list[1].active and self.room_name and self.room_password:
+            x_offset = len(self.room_name) * 6
+            arcade.draw_text(self.room_name, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
+            arcade.draw_text(self.room_password, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
+
+        if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             self.sprite_list.draw()
             for button in self.button_list:
                 button.draw()
 
     def on_update(self, delta_time):
-        if self.dialogue_box_list[0].active:
+        if True in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
 
     def on_key_release(self, symbol, modifiers):
-        if not self.dialogue_box_list[0].active:
+        if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
         char = utils.map_key_symbol_to_char(symbol)
         if char == 'del' and len(self.server_address) > 0:
@@ -103,15 +131,33 @@ class BizingoGame(arcade.Window):
             self.server_address += char
 
     def on_mouse_press(self, x, y, button, key_modifiers):
-        utils.check_mouse_press_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
+        utils.check_mouse_press_for_buttons(
+            x, y,
+            self.button_list +
+            self.dialogue_box_list[0].button_list +
+            self.dialogue_box_list[1].button_list
+        )
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-        utils.check_mouse_release_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
+        utils.check_mouse_release_for_buttons(
+            x, y,
+            self.button_list +
+            self.dialogue_box_list[0].button_list +
+            self.dialogue_box_list[1].button_list
+        )
 
     def set_connection(self, is_connected):
         self.connected = is_connected
         texture = 'flagGreen1.png' if is_connected else 'flagRed1.png'
         self.sprite_list[0].texture = arcade.load_texture(':resources:images/items/' + texture)
+
+    def set_room_to_create_mode(self):
+        self.room_mode = 'Create'
+        self.dialogue_box_list[1].button_list[0].text = 'Create'
+    
+    def set_room_to_join_mode(self):
+        self.room_mode = 'Join'
+        self.dialogue_box_list[1].button_list[0].text = 'Join'
 
 
 
