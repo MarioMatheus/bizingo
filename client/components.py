@@ -89,7 +89,7 @@ class DefaultTextButton(TextButton):
         self.action_function()
 
 class ShowDialogButton(arcade.gui.TextButton):
-    def __init__(self, dialoguebox, x, y, width=110, height=50, text="Show", theme=None):
+    def __init__(self, dialoguebox, x, y, width=200, height=50, text="Connection", theme=None):
         super().__init__(x, y, width, height, text, theme=theme)
         self.dialoguebox = dialoguebox
 

@@ -18,3 +18,10 @@ def check_mouse_release_for_buttons(_x, _y, button_list):
     for button in button_list:
         if button.pressed:
             button.on_release()
+
+def map_key_symbol_to_char(symbol):
+    if symbol == 65288:
+        return 'del'
+    if symbol not in range(97, 123) and symbol not in [45, 46, 47, 95]:
+        return ''
+    return chr(symbol)

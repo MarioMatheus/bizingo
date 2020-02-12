@@ -15,8 +15,9 @@ class BizingoGame(arcade.Window):
         file_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(file_path)
 
-        self.pause = False
-        # self.coin_list = None
+        self.server_address = ""
+        self.connected = False
+
         self.button_list = None
 
         self.half_width = self.width/2
@@ -25,18 +26,21 @@ class BizingoGame(arcade.Window):
 
     def setup(self):
         self.button_list = []
-
-        play_button = components.DefaultTextButton(60, 570, 'Connect',self.resume_program)
-        self.button_list.append(play_button)
-
-        quit_button = components.DefaultTextButton(60, 515, 'Quit', self.pause_program)
-        self.button_list.append(quit_button)
+        self.sprite_list = arcade.SpriteList()
 
         arcade.set_background_color(arcade.color.ALICE_BLUE)
+
+        self.add_menu_sprites()
         self.set_theme()
         self.add_dialogue_box()
-        # self.add_text()
         self.add_button()
+
+    def add_menu_sprites(self):
+        flag = arcade.Sprite(':resources:images/items/flagRed1.png')
+        flag.center_x = self.width - 266
+        flag.center_y = self.half_height * 1.8  
+        flag.scale = 0.3
+        self.sprite_list.append(flag)
 
     def set_theme(self):
         self.theme = arcade.gui.Theme()
@@ -55,37 +59,48 @@ class BizingoGame(arcade.Window):
         locked = ":resources:gui_themes/Fantasy/Buttons/Locked.png"
         self.theme.add_button_textures(normal, hover, clicked, locked)
 
-    def on_draw(self):
-        arcade.start_render()
-        super().on_draw()
-
-        for button in self.button_list:
-            button.draw()
-
-        for text in self.dialogue_box_list[0].text_list:
-            text.draw()
-
-    def on_update(self, delta_time):
-        if self.pause:
-            return
-        
-        if self.dialogue_box_list[0].active:
-            return
-
     def add_dialogue_box(self):
         color = (220, 228, 255)
         dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
                                              self.half_height*1.5, color, self.theme)
-        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 40,
-                                   theme=self.theme)
+        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 80, width=160, text="Connect", theme=self.theme)
+        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 20, theme=self.theme)
+        dialoguebox.button_list.append(conn_button)
         dialoguebox.button_list.append(close_button)
-        message = "Hello I am a Dialogue Box."
-        dialoguebox.text_list.append(arcade.gui.TextBox(message, self.half_width, self.half_height/2, self.theme.font_color))
+        message = "Type Server Address"
+        
+        dialoguebox.text_list.append(arcade.gui.TextLabel(message, self.half_width, self.half_height + 60, self.theme.font_color))
         self.dialogue_box_list.append(dialoguebox)
 
     def add_button(self):
-        show_button = components.ShowDialogButton(self.dialogue_box_list[0], self.width-100, self.half_height, theme=self.theme)
+        show_button = components.ShowDialogButton(self.dialogue_box_list[0], self.width-150, self.half_height * 1.8, theme=self.theme)
         self.button_list.append(show_button)
+
+    def on_draw(self):
+        arcade.start_render()
+        super().on_draw()
+
+        if self.dialogue_box_list[0].active and self.server_address:
+            x_offset = len(self.server_address) * 5.4
+            arcade.draw_text(self.server_address, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
+        
+        if not self.dialogue_box_list[0].active:
+            self.sprite_list.draw()
+            for button in self.button_list:
+                button.draw()
+
+    def on_update(self, delta_time):
+        if self.dialogue_box_list[0].active:
+            return
+
+    def on_key_release(self, symbol, modifiers):
+        if not self.dialogue_box_list[0].active:
+            return
+        char = utils.map_key_symbol_to_char(symbol)
+        if char == 'del' and len(self.server_address) > 0:
+            self.server_address = self.server_address[:-1]
+        else:
+            self.server_address += char
 
     def on_mouse_press(self, x, y, button, key_modifiers):
         utils.check_mouse_press_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
@@ -93,11 +108,12 @@ class BizingoGame(arcade.Window):
     def on_mouse_release(self, x, y, button, key_modifiers):
         utils.check_mouse_release_for_buttons(x, y, self.button_list + self.dialogue_box_list[0].button_list)
 
-    def pause_program(self):
-        self.pause = True
+    def set_connection(self, is_connected):
+        self.connected = is_connected
+        texture = 'flagGreen1.png' if is_connected else 'flagRed1.png'
+        self.sprite_list[0].texture = arcade.load_texture(':resources:images/items/' + texture)
 
-    def resume_program(self):
-        self.pause = False
+
 
 def main():
     """ Main method """
