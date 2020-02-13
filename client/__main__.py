@@ -19,14 +19,21 @@ class BizingoGame(arcade.Window):
         self.connected = False
 
         self.room_mode = 'Create'
-        self.room_name = 'Name'
-        self.room_password = 'Password'
+        self.active_room_field = 'name'
+
+        self.room_name = 'sala1'
+        self.room_password = 'pass'
 
         self.button_list = None
 
         self.half_width = self.width/2
         self.half_height = self.height/2
         self.theme = None
+
+        self.name_field_rect = (self.half_width, self.half_height, 340, 35)
+        self.password_field_rect = (self.half_width, self.half_height-50, 340, 35)
+        self.name_field_color = arcade.color.WHITE_SMOKE
+        self.password_field_color = arcade.color.BLACK_BEAN
 
     def setup(self):
         self.button_list = []
@@ -81,8 +88,8 @@ class BizingoGame(arcade.Window):
         color = (220, 228, 255)
         dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
                                              self.half_height*1.5, color, self.theme)
-        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 80, width=160, text=self.room_mode, theme=self.theme)
-        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 20, theme=self.theme)
+        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 45, width=160, text=self.room_mode, theme=self.theme)
+        close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) - 10, theme=self.theme)
         dialoguebox.button_list.append(conn_button)
         dialoguebox.button_list.append(close_button)
         message = "Room Info"
@@ -108,11 +115,18 @@ class BizingoGame(arcade.Window):
             arcade.draw_text(self.server_address, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
         
         if self.dialogue_box_list[1].active:
-            arcade.draw_rectangle_outline(self.half_width, self.half_height-20, 200, 50, arcade.color.WHITE_SMOKE)
-            if self.room_name and self.room_password:
-                x_offset = len(self.room_name) * 6
-                arcade.draw_text(self.room_name, self.half_width-x_offset, self.half_height, arcade.color.BLACK, 18)
-                arcade.draw_text(self.room_password, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
+            arcade.draw_rectangle_outline(
+                self.name_field_rect[0], self.name_field_rect[1], self.name_field_rect[2], self.name_field_rect[3],
+                self.name_field_color
+            )
+            arcade.draw_rectangle_outline(
+                self.password_field_rect[0], self.password_field_rect[1], self.password_field_rect[2], self.password_field_rect[3],
+                self.password_field_color
+            )
+            if self.room_name:
+                arcade.draw_text(self.room_name, self.half_width-160, self.half_height-12, arcade.color.BLACK, 18)
+            if self.room_password:
+                arcade.draw_text(self.room_password, self.half_width-160, self.half_height-62, arcade.color.BLACK, 18)
 
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             self.sprite_list.draw()
@@ -120,6 +134,8 @@ class BizingoGame(arcade.Window):
                 button.draw()
 
     def on_update(self, delta_time):
+        self.name_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'name' else arcade.color.BLACK_BEAN
+        self.password_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'password' else arcade.color.BLACK_BEAN
         if True in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
 
@@ -127,10 +143,20 @@ class BizingoGame(arcade.Window):
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
         char = utils.map_key_symbol_to_char(symbol)
-        if char == 'del' and len(self.server_address) > 0:
-            self.server_address = self.server_address[:-1]
-        else:
+        if char == 'del':
+            if self.dialogue_box_list[0].active and len(self.server_address) > 0:
+                self.server_address = self.server_address[:-1]
+            elif self.dialogue_box_list[1].active and len(self.room_name if self.active_room_field == 'name' else self.room_password) > 0:
+                if self.active_room_field == 'name':
+                    self.room_name = self.room_name[:-1]
+                else:
+                    self.room_password = self.room_password[:-1]
+        elif self.dialogue_box_list[0].active:
             self.server_address += char
+        elif self.active_room_field == 'name':
+            self.room_name += char
+        else:
+            self.room_password += char
 
     def on_mouse_press(self, x, y, button, key_modifiers):
         utils.check_mouse_press_for_buttons(
@@ -141,6 +167,10 @@ class BizingoGame(arcade.Window):
         )
 
     def on_mouse_release(self, x, y, button, key_modifiers):
+        if self.dialogue_box_list[1].active and utils.check_click_at_rect(x, y, self.name_field_rect):
+            self.active_room_field = 'name'
+        if self.dialogue_box_list[1].active and utils.check_click_at_rect(x, y, self.password_field_rect):
+            self.active_room_field = 'password'
         utils.check_mouse_release_for_buttons(
             x, y,
             self.button_list +

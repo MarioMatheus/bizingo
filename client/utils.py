@@ -1,3 +1,14 @@
+def check_click_at_rect(x, y, rect):
+    if x > rect[0] + rect[2] / 2:
+        return False
+    if x < rect[0] - rect[2] / 2:
+        return False
+    if y > rect[1] + rect[3] / 2:
+        return False
+    if y < rect[1] - rect[3] / 2:
+        return False
+    return True
+
 def check_mouse_press_for_buttons(x, y, button_list):
     """ Given an x, y, see if we need to register any button clicks. """
     for button in button_list:
