@@ -19,8 +19,8 @@ class BizingoGame(arcade.Window):
         self.connected = False
 
         self.room_mode = 'Create'
-        self.room_name = ''
-        self.room_password = ''
+        self.room_name = 'Name'
+        self.room_password = 'Password'
 
         self.button_list = None
 
@@ -107,10 +107,12 @@ class BizingoGame(arcade.Window):
             x_offset = len(self.server_address) * 6
             arcade.draw_text(self.server_address, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
         
-        if self.dialogue_box_list[1].active and self.room_name and self.room_password:
-            x_offset = len(self.room_name) * 6
-            arcade.draw_text(self.room_name, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
-            arcade.draw_text(self.room_password, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
+        if self.dialogue_box_list[1].active:
+            arcade.draw_rectangle_outline(self.half_width, self.half_height-20, 200, 50, arcade.color.WHITE_SMOKE)
+            if self.room_name and self.room_password:
+                x_offset = len(self.room_name) * 6
+                arcade.draw_text(self.room_name, self.half_width-x_offset, self.half_height, arcade.color.BLACK, 18)
+                arcade.draw_text(self.room_password, self.half_width-x_offset, self.half_height-20, arcade.color.BLACK, 18)
 
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             self.sprite_list.draw()
