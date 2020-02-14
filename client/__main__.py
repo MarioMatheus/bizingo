@@ -1,7 +1,9 @@
 import arcade
 import random
 import os
-import utils, components
+import socket
+
+from . import utils, components
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -15,6 +17,8 @@ class BizingoGame(arcade.Window):
         file_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(file_path)
 
+        self.conn_socket = socket.socket()
+
         self.log = ''
 
         self.server_address = 'server:80'
@@ -22,6 +26,7 @@ class BizingoGame(arcade.Window):
 
         self.room_mode = 'Create'
         self.active_room_field = 'name'
+        self.in_room_standby = False
 
         self.room_name = 'sala1'
         self.room_password = 'pass'
@@ -95,7 +100,7 @@ class BizingoGame(arcade.Window):
         color = (220, 228, 255)
         dialoguebox = arcade.gui.DialogueBox(self.half_width, self.half_height, self.half_width*1.1,
                                              self.half_height*1.5, color, self.theme)
-        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 45, width=160, text=self.room_mode, theme=self.theme)
+        conn_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) + 45, width=160, text=self.room_mode, on_will_close=self.handle_room_action,theme=self.theme)
         close_button = components.CloseDialogButton(dialoguebox, self.half_width, self.half_height-(self.half_height/2) - 10, theme=self.theme)
         dialoguebox.button_list.append(conn_button)
         dialoguebox.button_list.append(close_button)
@@ -209,28 +214,35 @@ class BizingoGame(arcade.Window):
         self.dialogue_box_list[1].button_list[0].text = 'Join'
 
     def create_connection(self):
+        self.log = ''
         self.dialogue_box_list[1].active = False
         host, port = self.server_address.split(':') if self.server_address and ':' in self.server_address else (self.server_address, 80)
-        from socket import socket
-        s = socket()
         try:
-            s.connect((host, int(port)))
+            self.conn_socket.connect((host, int(port)))
             self.set_connection(True)
-            from select import select
-            while True:
-                connections, _, _ = select([s], [], [])
-                for conn in connections:
-                    message = conn.recv(1024)
-                    if message:
-                        print(message.decode('utf-8'))
-                    else:
-                        s.close()
-                        import sys
-                        sys.exit()
         except Exception as m:
             self.set_connection(False)
             self.log = str(m)
 
+    def handle_room_action(self):
+        if not self.room_name or not self.room_password:
+            return
+        import getpass
+        from game import message
+        try:
+            username = getpass.getuser()
+            data = message.GameMessage().encode({
+                "action": self.room_mode.lower(),
+                'name': username if username else 'Random',
+                'room': self.room_name,
+                'password': self.room_password
+            }, 'ROOM')
+            self.conn_socket.send(data)
+            self.in_room_standby = True
+            for button in self.button_list:
+                button.active = False
+        except Exception as m:
+            self.log = str(m)
 
     def conn_will_close(self):
         self.dialogue_box_list[1].active = False

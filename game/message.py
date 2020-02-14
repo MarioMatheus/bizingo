@@ -11,5 +11,5 @@ class GameMessage:
         payload = {}
         for attr in str_data:
             key, value = attr.split(':')
-            payload[key.replace("'", '').replace(' ', '')] = value.replace("'", '')
+            payload[key.replace("'", '').replace(' ', '')] = value.replace("'", '').strip()
         return module, payload
