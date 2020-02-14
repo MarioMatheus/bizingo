@@ -51,11 +51,19 @@ def queue_thread():
                     module, payload = messenger.decode(data)
                     logging.debug('Received data | Module: ' + module + ' | payload: ' + str(payload))
                     if module == 'ROOM' and payload['action'] == 'create':
+                        def search_room(user_connection):
+                            return users_queue[user_connection]['room']['name'] == payload['room']
                         lock.acquire()
-                        users_queue[user]['name'] = payload['name']
-                        users_queue[user]['room'] = { 'name': payload['room'], 'password': payload['password'] }
+                        rooms = list(filter(search_room, users_queue.keys()))
+                        if len(rooms) > 0:
+                            user.send(messenger.encode('Room already exist', 'ROOM'))
+                            logging.info('Creation request rejected | IP ' + users_queue[user]['addr'][0])
+                        else:
+                            users_queue[user]['name'] = payload['name']
+                            users_queue[user]['room'] = { 'name': payload['room'], 'password': payload['password'] }
+                            user.send(messenger.encode('Request accepted', 'ROOM'))
+                            logging.info('Creation request accepts | IP ' + users_queue[user]['addr'][0])
                         lock.release()
-                        logging.info('Creation request accepts | IP ' + users_queue[user]['addr'][0])
                     if module == 'ROOM' and payload['action'] == 'join':
                         logging.info('Checking request to join a room | IP ' + users_queue[user]['addr'][0])
                         users_queue[user]['name'] = payload['name']
