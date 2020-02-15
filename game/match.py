@@ -1,4 +1,5 @@
 import logging
+from . import originialboard
 
 class Match:
     def __init__(self, players):
@@ -6,19 +7,7 @@ class Match:
         self.game_over = False
         self.winner = None
         self.players = players
-        self.board = [
-                                    [0, 0, 0, 0, 0],
-                                 [0, 0, 0, 0, 0, 0, 0],
-                              [0, 0, 1, 0, 1, 0, 1, 0, 0],
-                           [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
-                        [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0],
-                     [0, 0, 1, 0,10, 0, 1, 0, 1, 0,10, 0, 1, 0, 0],
-                  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-               [0, 0, 0, 2, 0,20, 0, 2, 0, 2, 0, 2, 0,20, 0, 2, 0, 0, 0],
-            [0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 0, 0, 0, 0, 0, 0],
-               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        ]
+        self.board = originialboard.board.copy()
 
     def broadcast(self, message):
         for player in self.players:

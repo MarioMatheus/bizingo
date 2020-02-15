@@ -1,8 +1,13 @@
 import arcade
 from . import utils
+from game import originialboard
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
+
+WIDTH = 30
+HEIGHT = 30
+MARGIN = 300
 
 class MatchScene:
     def __init__(self):
@@ -13,10 +18,14 @@ class MatchScene:
         self.chat_msg_buffer = ''
         self.chat_messages = [('game', 'Bem Vindo!')]
 
+        self.board = originialboard.board.copy()
+
         self.setup()
 
     def setup(self):
+        self.background = arcade.load_texture(":resources:images/backgrounds/abstract_2.jpg")
         self.setup_chat_sprites()
+        self.setup_board_sprites()
 
     def setup_chat_sprites(self):
         chat_bg = arcade.Sprite(':resources:gui_themes/Fantasy/Menu/Menu.png')
@@ -32,6 +41,11 @@ class MatchScene:
         self.sprite_list.append(chat_bg)
         self.sprite_list.append(chat_text_box)
 
+    def setup_board_sprites(self):
+        board_sprite = arcade.Sprite('res/bizingo-board.png')
+        board_sprite.center_x = 530
+        board_sprite.center_y = self.half_height + 50
+        self.sprite_list.append(board_sprite)
 
     def on_draw_chat(self):
         if self.chat_msg_buffer:
@@ -47,6 +61,8 @@ class MatchScene:
         pass
 
     def on_draw(self):
+        arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
+
         self.sprite_list.draw()
         self.on_draw_chat()
         self.on_draw_board()

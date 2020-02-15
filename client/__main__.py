@@ -166,7 +166,7 @@ class BizingoGame(arcade.Window):
             self.on_draw_menu()
         
         if self.log:
-            arcade.draw_text(self.log, 10, 10, arcade.color.WHITE, 14)
+            arcade.draw_text(self.log, 500 if IN_GAME else 10, 10, arcade.color.BLACK_OLIVE if IN_GAME else arcade.color.WHITE, 14)
 
     def on_update(self, delta_time):
         self.name_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'name' else arcade.color.BLACK_BEAN
