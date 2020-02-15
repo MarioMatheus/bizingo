@@ -116,7 +116,8 @@ class MatchScene:
         for i, msg in enumerate(self.chat_messages[:25]):
             arcade.draw_text(msg[1],
                 15 if msg[0] in ['you', 'game'] else 200, 50 + 25 * i,
-                arcade.color.BLACK_OLIVE, 12, bold=(msg[0]=='game'),
+                arcade.color.BLACK_OLIVE if msg[0]=='you' else arcade.color.PURPLE if msg[0]=='game' else arcade.color.BLUE_GREEN
+                , 12, bold=(msg[0]=='game'),
                 align='left' if msg[0] in ['you', 'game'] else 'right'
             )
 
