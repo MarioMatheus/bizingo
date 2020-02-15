@@ -30,6 +30,9 @@ class MatchScene:
         self.board_coordinates = deepcopy(originialboard.board)
         self.board_coordinates_center = deepcopy(originialboard.board)
 
+        self.selected_coordinate = None
+        self.accessible_positions = []
+
         self.setup()
 
     def setup(self):
@@ -116,12 +119,12 @@ class MatchScene:
         for i, msg in enumerate(self.chat_messages[:25]):
             arcade.draw_text(msg[1],
                 15 if msg[0] in ['you', 'game'] else 200, 50 + 25 * i,
-                arcade.color.BLACK_OLIVE if msg[0]=='you' else arcade.color.PURPLE if msg[0]=='game' else arcade.color.BLUE_GREEN
-                , 12, bold=(msg[0]=='game'),
+                arcade.color.BLACK_OLIVE if msg[0]=='you' else arcade.color.PURPLE if msg[0]=='game' else arcade.color.BLUE_GREEN,
+                12, bold=(msg[0]=='game'),
                 align='left' if msg[0] in ['you', 'game'] else 'right'
             )
 
-    def on_draw_board(self):
+    def draw_pieces(self):
         for i, row in enumerate(self.board):
             for j, t_content in enumerate(row):
                 if t_content != 0:
@@ -135,7 +138,18 @@ class MatchScene:
                         piece_texture = self.p2_soldier_texture
                     elif t_content == 20:
                         piece_texture = self.p2_captain_texture
-                    arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture)
+                    texture_alpha = 155 if self.get_board_coordinate(i, j) == self.selected_coordinate else 255
+                    arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture, alpha=texture_alpha)
+
+    def draw_accessible_triangles(self):
+        for i, j in self.accessible_positions:
+            position = self.board_coordinates_center[i][j]
+            arcade.draw_circle_filled(position[0], position[1] - 8, 8, arcade.color.REDWOOD)
+
+    def on_draw_board(self):
+        self.draw_pieces()
+        self.draw_accessible_triangles()
+        
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
@@ -144,9 +158,14 @@ class MatchScene:
         self.on_draw_board()
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-        coordinate = self.get_triangle_coordinate_in_position(x, y)
-        if coordinate is not None:
-            print(coordinate)
+        board_coordinate = self.get_triangle_coordinate_in_position(x, y)
+        self.selected_coordinate = board_coordinate
+        if board_coordinate is not None:
+            i, j = self.get_index_coordinate(board_coordinate)
+            self.accessible_positions = self.get_adjacent_empty_triangles(i, j)
+        else:
+            self.accessible_positions = []
+            
 
     def on_key_release(self, symbol, modifiers):
         if symbol == 65293 and self.chat_msg_buffer:
@@ -158,3 +177,22 @@ class MatchScene:
             self.chat_msg_buffer = self.chat_msg_buffer[:-1]
         elif char != 'del' and len(self.chat_msg_buffer) < 32:
             self.chat_msg_buffer += char
+
+    def get_adjacent_empty_triangles(self, row, column):
+        up_lenght = len(self.board[row])-2 if row - 1 < 0 else len(self.board[row-1])
+        col_offset_up = len(self.board[row]) - up_lenght
+        col_offset_bottom = len(self.board[row]) - up_lenght
+        col_offset_up -= 0 if row < 9 else -1 if row == 9 else -2
+        col_offset_bottom -= 0 if row < 8 else -1 if row == 8 else -4 if row == 9 else 0
+        adjacents = [
+            (row-1, column-col_offset_up), (row-1, column+2-col_offset_up),
+            (row, column-2), (row, column+2),
+            (row+1, column+2-col_offset_bottom), (row+1, column+4-col_offset_bottom)
+        ]
+        def validate_inside_board(index_path):
+            if index_path[0] >= len(self.board) or index_path[1] >= len(self.board[index_path[0]]):
+                return False
+            valid_position = index_path[0] >= 0 and index_path[1] >= 0
+            return valid_position and self.board[index_path[0]][index_path[1]] == 0
+
+        return list(filter(validate_inside_board, adjacents))
