@@ -250,6 +250,7 @@ class BizingoGame(arcade.Window):
     def handle_match_message(self, payload):
         if 'initial_player' in payload.keys():
             IN_GAME = True
+            print(IN_GAME)
             self.match_scene = matchscene.MatchScene()
 
     def handle_server_contact(self):

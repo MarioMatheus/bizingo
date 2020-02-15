@@ -5,9 +5,11 @@ from game import originialboard
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
-WIDTH = 30
-HEIGHT = 30
-MARGIN = 300
+INITIAL_BOARD_COORDINATE = (485.6, SCREEN_HEIGHT - 36)
+
+T_WIDTH = 45 # 42.9
+T_HEIGHT = 38.9
+
 
 class MatchScene:
     def __init__(self):
@@ -19,6 +21,7 @@ class MatchScene:
         self.chat_messages = [('game', 'Bem Vindo!')]
 
         self.board = originialboard.board.copy()
+        self.board_coordinates = originialboard.board.copy()
 
         self.setup()
 
@@ -26,6 +29,7 @@ class MatchScene:
         self.background = arcade.load_texture(":resources:images/backgrounds/abstract_2.jpg")
         self.setup_chat_sprites()
         self.setup_board_sprites()
+        self.setup_board_coordinates()
 
     def setup_chat_sprites(self):
         chat_bg = arcade.Sprite(':resources:gui_themes/Fantasy/Menu/Menu.png')
@@ -47,6 +51,26 @@ class MatchScene:
         board_sprite.center_y = self.half_height + 50
         self.sprite_list.append(board_sprite)
 
+    def setup_board_coordinates(self):
+        for i in range(len(self.board)):
+            y = INITIAL_BOARD_COORDINATE[1] - T_HEIGHT * i
+            x_offset = i * T_WIDTH/2
+            x_offset = x_offset if i < 9 else x_offset + T_WIDTH * (9-i)
+            for j in range(len(self.board[i])):
+                x = INITIAL_BOARD_COORDINATE[0] + T_WIDTH * (j if j % 2 == (0 if i < 9 else 1) else j-1) / 2 - x_offset
+                x = x if i < 9 else x + T_WIDTH/2
+                if i < 9:
+                    if j % 2 == 0:
+                        self.board_coordinates[i][j] = [(x, y), (x-T_WIDTH/2, y-T_HEIGHT), (x+T_WIDTH/2, y-T_HEIGHT)]
+                    else:
+                        self.board_coordinates[i][j] = [(x, y), (x+T_WIDTH, y), (x+T_WIDTH/2, y-T_HEIGHT)]
+                else:
+                    if j % 2 == 0:
+                        self.board_coordinates[i][j] = [(x, y), (x+T_WIDTH, y), (x+T_WIDTH/2, y-T_HEIGHT)]
+                    else:
+                        self.board_coordinates[i][j] = [(x, y), (x-T_WIDTH/2, y-T_HEIGHT), (x+T_WIDTH/2, y-T_HEIGHT)]
+
+
     def on_draw_chat(self):
         if self.chat_msg_buffer:
             arcade.draw_text(self.chat_msg_buffer, 15, 10, arcade.color.WHITE, 12)
@@ -58,7 +82,13 @@ class MatchScene:
             )
 
     def on_draw_board(self):
-        pass
+        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0], INITIAL_BOARD_COORDINATE[1], arcade.color.BLACK, 1)
+        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0] - T_WIDTH/2, INITIAL_BOARD_COORDINATE[1] - T_HEIGHT, arcade.color.BLACK, 1)
+        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0] + T_WIDTH/2, INITIAL_BOARD_COORDINATE[1] - T_HEIGHT, arcade.color.BLACK, 1)
+        for row in self.board_coordinates:
+            for col in row:
+                for point in col:
+                    arcade.draw_point(point[0], point[1], arcade.color.BLACK, 4)
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
