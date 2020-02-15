@@ -56,12 +56,12 @@ def queue_thread():
                         lock.acquire()
                         rooms = list(filter(search_room, users_queue.keys()))
                         if len(rooms) > 0:
-                            user.send(messenger.encode('Room already exist', 'ROOM'))
+                            user.send(messenger.encode({'res': 'Room already exist'}, 'ROOM'))
                             logging.info('Creation request rejected | IP ' + users_queue[user]['addr'][0])
                         else:
                             users_queue[user]['name'] = payload['name']
                             users_queue[user]['room'] = { 'name': payload['room'], 'password': payload['password'] }
-                            user.send(messenger.encode('Request accepted', 'ROOM'))
+                            user.send(messenger.encode({'res': 'Request accepted'}, 'ROOM'))
                             logging.info('Creation request accepts | IP ' + users_queue[user]['addr'][0])
                         lock.release()
                     if module == 'ROOM' and payload['action'] == 'join':

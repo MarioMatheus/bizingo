@@ -149,8 +149,11 @@ class BizingoGame(arcade.Window):
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
             self.sprite_list.draw()
-            for button in self.button_list:
-                button.draw()
+            if self.in_room_standby:
+                arcade.draw_text('Awaiting opposing player...', self.half_width-160, self.half_height-40, arcade.color.WHITE_SMOKE, 22)
+            else:
+                for button in self.button_list:
+                    button.draw()
         
         if self.log:
             arcade.draw_text(self.log, 10, 10, arcade.color.WHITE, 14)
@@ -220,9 +223,30 @@ class BizingoGame(arcade.Window):
         try:
             self.conn_socket.connect((host, int(port)))
             self.set_connection(True)
+            self.log = 'Connected'
         except Exception as m:
             self.set_connection(False)
             self.log = str(m)
+
+    def handle_room_message(self, payload):
+        self.log = payload['res']
+        if 'accepted' not in payload['res']:
+            self.in_room_standby = False
+
+    def handle_server_contact(self):
+        import select
+        from game import message
+        messenger = message.GameMessage()
+        while True:
+            inputs, _, _ = select.select([self.conn_socket], [], [])
+            for ipt in inputs:
+                data = ipt.recv(1024)
+                if data:
+                    module, payload = messenger.decode(data)
+                    if module == 'ROOM':
+                        return self.handle_room_message(payload)
+                else:
+                    self.conn_socket.close()
 
     def handle_room_action(self):
         if not self.room_name or not self.room_password:
@@ -239,8 +263,7 @@ class BizingoGame(arcade.Window):
             }, 'ROOM')
             self.conn_socket.send(data)
             self.in_room_standby = True
-            for button in self.button_list:
-                button.active = False
+            self.handle_server_contact()
         except Exception as m:
             self.log = str(m)
 
