@@ -3,11 +3,13 @@ import random
 import os
 import socket
 
-from . import utils, components
+from . import utils, components, matchscene
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Bizingo"
+
+IN_GAME = True
 
 class BizingoGame(arcade.Window):
 
@@ -18,6 +20,7 @@ class BizingoGame(arcade.Window):
         os.chdir(file_path)
 
         self.conn_socket = socket.socket()
+        self.match_scene = matchscene.MatchScene()
 
         self.log = ''
 
@@ -118,8 +121,7 @@ class BizingoGame(arcade.Window):
         self.button_list.append(create_room_button)
         self.button_list.append(join_room_button)
 
-    def on_draw(self):
-        arcade.start_render()
+    def on_draw_menu(self):
         super().on_draw()
 
         if self.dialogue_box_list[0].active:
@@ -154,6 +156,14 @@ class BizingoGame(arcade.Window):
             else:
                 for button in self.button_list:
                     button.draw()
+
+    def on_draw(self):
+        arcade.start_render()
+        
+        if IN_GAME and self.match_scene is not None:
+            self.match_scene.on_draw()
+        else:
+            self.on_draw_menu()
         
         if self.log:
             arcade.draw_text(self.log, 10, 10, arcade.color.WHITE, 14)
@@ -165,6 +175,8 @@ class BizingoGame(arcade.Window):
             return
 
     def on_key_release(self, symbol, modifiers):
+        if IN_GAME:
+            return self.match_scene.on_key_release(symbol, modifiers)
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
         char = utils.map_key_symbol_to_char(symbol)
@@ -232,6 +244,13 @@ class BizingoGame(arcade.Window):
         self.log = payload['res']
         if 'accepted' not in payload['res']:
             self.in_room_standby = False
+        else:
+            self.handle_server_contact()
+
+    def handle_match_message(self, payload):
+        if 'initial_player' in payload.keys():
+            IN_GAME = True
+            self.match_scene = matchscene.MatchScene()
 
     def handle_server_contact(self):
         import select
@@ -245,6 +264,8 @@ class BizingoGame(arcade.Window):
                     module, payload = messenger.decode(data)
                     if module == 'ROOM':
                         return self.handle_room_message(payload)
+                    if module == 'MATCH':
+                        return self.handle_match_message(payload)
                 else:
                     self.conn_socket.close()
 
