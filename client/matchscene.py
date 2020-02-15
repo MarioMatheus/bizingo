@@ -70,6 +70,23 @@ class MatchScene:
                     else:
                         self.board_coordinates[i][j] = [(x, y), (x-T_WIDTH/2, y-T_HEIGHT), (x+T_WIDTH/2, y-T_HEIGHT)]
 
+    def get_index_coordinate(self, coordinate):
+        row_key = coordinate[0]
+        column = coordinate[1:]
+        row = ord(row_key) - 65
+        return row, int(column) - 1
+
+    def get_board_coordinate(self, row, column):
+        x = chr(row + 65)
+        return x + str(column+1)
+
+    def get_triangle_coordinate_in_position(self, x, y):
+        for i, row in enumerate(self.board_coordinates):
+            for j, point_list in enumerate(row):
+                if arcade.is_point_in_polygon(x, y, point_list):
+                    return self.get_board_coordinate(i, j)
+        return None
+
 
     def on_draw_chat(self):
         if self.chat_msg_buffer:
@@ -82,20 +99,18 @@ class MatchScene:
             )
 
     def on_draw_board(self):
-        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0], INITIAL_BOARD_COORDINATE[1], arcade.color.BLACK, 1)
-        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0] - T_WIDTH/2, INITIAL_BOARD_COORDINATE[1] - T_HEIGHT, arcade.color.BLACK, 1)
-        # arcade.draw_point(INITIAL_BOARD_COORDINATE[0] + T_WIDTH/2, INITIAL_BOARD_COORDINATE[1] - T_HEIGHT, arcade.color.BLACK, 1)
-        for row in self.board_coordinates:
-            for col in row:
-                for point in col:
-                    arcade.draw_point(point[0], point[1], arcade.color.BLACK, 4)
+        pass
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
-
         self.sprite_list.draw()
         self.on_draw_chat()
         self.on_draw_board()
+
+    def on_mouse_release(self, x, y, button, key_modifiers):
+        coordinate = self.get_triangle_coordinate_in_position(x, y)
+        if coordinate is not None:
+            print(coordinate)
 
     def on_key_release(self, symbol, modifiers):
         if symbol == 65293 and self.chat_msg_buffer:

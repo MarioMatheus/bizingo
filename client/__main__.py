@@ -204,6 +204,8 @@ class BizingoGame(arcade.Window):
         )
 
     def on_mouse_release(self, x, y, button, key_modifiers):
+        if IN_GAME:
+            return self.match_scene.on_mouse_release(x, y, button, key_modifiers)
         if self.dialogue_box_list[1].active and utils.check_click_at_rect(x, y, self.name_field_rect):
             self.active_room_field = 'name'
         if self.dialogue_box_list[1].active and utils.check_click_at_rect(x, y, self.password_field_rect):
