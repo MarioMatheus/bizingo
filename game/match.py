@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from . import originialboard
 
 class Match:
@@ -7,7 +8,7 @@ class Match:
         self.game_over = False
         self.winner = None
         self.players = players
-        self.board = originialboard.board.copy()
+        self.board = deepcopy(originialboard.board)
 
     def broadcast(self, message):
         for player in self.players:

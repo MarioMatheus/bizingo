@@ -1,4 +1,5 @@
 import arcade
+from copy import deepcopy
 from . import utils
 from game import originialboard
 
@@ -10,6 +11,11 @@ INITIAL_BOARD_COORDINATE = (485.6, SCREEN_HEIGHT - 36)
 T_WIDTH = 45 # 42.9
 T_HEIGHT = 38.9
 
+P2_CAPTAIN_RES = ':resources:images/animated_characters/robot/robot_idle.png'
+P2_SOLDIER_RES = ':resources:images/enemies/slimeBlue.png'
+P1_CAPTAIN_RES = ':resources:images/animated_characters/zombie/zombie_idle.png'
+P1_SOLDIER_RES = ':resources:images/enemies/slimeGreen.png'
+
 
 class MatchScene:
     def __init__(self):
@@ -20,16 +26,25 @@ class MatchScene:
         self.chat_msg_buffer = ''
         self.chat_messages = [('game', 'Bem Vindo!')]
 
-        self.board = originialboard.board.copy()
-        self.board_coordinates = originialboard.board.copy()
+        self.board = deepcopy(originialboard.board)
+        self.board_coordinates = deepcopy(originialboard.board)
+        self.board_coordinates_center = deepcopy(originialboard.board)
 
         self.setup()
 
     def setup(self):
-        self.background = arcade.load_texture(":resources:images/backgrounds/abstract_2.jpg")
+        self.load_textures()
         self.setup_chat_sprites()
         self.setup_board_sprites()
         self.setup_board_coordinates()
+        self.setup_board_coordinates_center()
+
+    def load_textures(self):
+        self.background = arcade.load_texture(":resources:images/backgrounds/abstract_2.jpg")
+        self.p1_captain_texture = arcade.load_texture(P1_CAPTAIN_RES)
+        self.p1_soldier_texture = arcade.load_texture(P1_SOLDIER_RES)
+        self.p2_captain_texture = arcade.load_texture(P2_CAPTAIN_RES)
+        self.p2_soldier_texture = arcade.load_texture(P2_SOLDIER_RES)
 
     def setup_chat_sprites(self):
         chat_bg = arcade.Sprite(':resources:gui_themes/Fantasy/Menu/Menu.png')
@@ -70,6 +85,14 @@ class MatchScene:
                     else:
                         self.board_coordinates[i][j] = [(x, y), (x-T_WIDTH/2, y-T_HEIGHT), (x+T_WIDTH/2, y-T_HEIGHT)]
 
+    def setup_board_coordinates_center(self):
+        for i, row in enumerate(self.board_coordinates):
+            for j, point_list in enumerate(row):
+                self.board_coordinates_center[i][j] = (
+                    (point_list[0][0] + point_list[1][0] + point_list[2][0]) / 3,
+                    (point_list[0][1] + point_list[1][1] + point_list[2][1]) / 3 + 8
+                )
+    
     def get_index_coordinate(self, coordinate):
         row_key = coordinate[0]
         column = coordinate[1:]
@@ -87,7 +110,6 @@ class MatchScene:
                     return self.get_board_coordinate(i, j)
         return None
 
-
     def on_draw_chat(self):
         if self.chat_msg_buffer:
             arcade.draw_text(self.chat_msg_buffer, 15, 10, arcade.color.WHITE, 12)
@@ -99,7 +121,20 @@ class MatchScene:
             )
 
     def on_draw_board(self):
-        pass
+        for i, row in enumerate(self.board):
+            for j, t_content in enumerate(row):
+                if t_content != 0:
+                    piece_texture = ''
+                    piece_point = self.board_coordinates_center[i][j]
+                    if t_content == 1:
+                        piece_texture = self.p1_soldier_texture
+                    elif t_content == 10:
+                        piece_texture = self.p1_captain_texture
+                    elif t_content == 2:
+                        piece_texture = self.p2_soldier_texture
+                    elif t_content == 20:
+                        piece_texture = self.p2_captain_texture
+                    arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture)
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
