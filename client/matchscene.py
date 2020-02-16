@@ -23,6 +23,7 @@ class MatchScene:
         self.connection = connection
         self.is_initial_player = is_initial_player
         self.turn = 0
+        self.game_over = False
 
         self.sprite_list = arcade.SpriteList()
         self.half_width = SCREEN_WIDTH/2
@@ -121,6 +122,9 @@ class MatchScene:
                     return self.get_board_coordinate(i, j)
         return None
 
+    def set_game_over(self, winner_index):
+        self.game_over = True
+
     def append_chat_message(self, sender, message):
         if sender == 'you':
             self.connection.send(GameMessage().encode({'msg': message}, 'CHAT'))
@@ -156,7 +160,6 @@ class MatchScene:
                 anchor_x='left' if msg[0] in ['you', 'game'] else 'right'
             )
 
-    # def draw_pieces(self):
     def setup_piece_sprites(self):
         for i, row in enumerate(self.board):
             for j, t_content in enumerate(row):
@@ -171,7 +174,6 @@ class MatchScene:
                         piece_texture = self.p2_soldier_texture
                     elif t_content == 20:
                         piece_texture = self.p2_captain_texture
-                    # texture_alpha = 155 if self.get_board_coordinate(i, j) == self.selected_coordinate else 255
                     sprite = arcade.Sprite()
                     sprite.texture = piece_texture
                     sprite.width = 30
@@ -180,7 +182,6 @@ class MatchScene:
                     sprite.center_y = piece_point[1]
                     sprite.properties['indexpath'] = {'i': i, 'j': j}
                     self.sprite_list.append(sprite)
-                    # arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture, alpha=texture_alpha)
 
     def draw_accessible_triangles(self):
         for i, j in self.accessible_positions:
@@ -188,12 +189,11 @@ class MatchScene:
             arcade.draw_circle_filled(position[0], position[1] - 8, 8, arcade.color.REDWOOD)
 
     def on_draw_board(self):
-        # self.draw_pieces()
         if self.turn % 2 == (0 if self.is_initial_player else 1):
             self.draw_accessible_triangles()
 
     def on_draw_hud(self):
-        arcade.draw_text('Turn: ' + str(self.turn+1), 350, 40, arcade.color.COOL_BLACK, 18)
+        arcade.draw_text('Turn: ' + str(self.turn+1) + ' - ' + ('Your' if self.turn % 2 == (0 if self.is_initial_player else 1) else 'Opponent') + ' turn', 350, 40, arcade.color.COOL_BLACK, 18)
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
@@ -203,7 +203,7 @@ class MatchScene:
         self.on_draw_hud()
 
     def on_update(self):
-        if self.sprites_to_remove_list:
+        if len(self.sprites_to_remove_list) > 0:
             for sprite in self.sprites_to_remove_list:
                 self.sprite_list.remove(sprite)
             self.sprites_to_remove_list = []
@@ -262,7 +262,6 @@ class MatchScene:
                 break
         if removed_sprite is not None and removed_sprite in self.sprite_list:
             self.sprites_to_remove_list.append(removed_sprite)
-            # self.sprite_list.remove(removed_sprite)
 
     def get_adjacent_empty_triangles(self, row, column):
         up_lenght = len(self.board[row])-2 if row - 1 < 0 else len(self.board[row-1])

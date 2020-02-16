@@ -22,7 +22,7 @@ def handle_join_action(user, payload):
 
     if len(hosts) == 0:
         logging.debug('Room not found')
-        user.send(('Room ' + payload['name'] + ' not found').encode())
+        user.send(message.GameMessage().encode({'res': 'Not found room to join'}, 'ROOM'))
     else:
         host = hosts[0]
         if users_queue[host]['room']['password'] == payload['password']:

@@ -197,8 +197,7 @@ class Match:
             'captured': captured_piece,
             'turn': str(self.turn)
         })
-        # self.broadcast({ 'event': 'turnchange', 'turn': str(self.turn) })
-
+        logging.info('BC::Move piece from ' + _from + ' to ' + to + ' | Captured '+ captured_piece + ' | Turn ' + str(self.turn))
 
     def __str__(self):
         description = 'Match\nBoard:\n'

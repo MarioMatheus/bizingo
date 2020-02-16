@@ -171,10 +171,13 @@ class BizingoGame(arcade.Window):
             arcade.draw_text(self.log, 350 if self.in_game else 10, 10, arcade.color.BLACK_OLIVE if self.in_game else arcade.color.WHITE, 14)
 
     def on_update(self, delta_time):
-        self.name_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'name' else arcade.color.BLACK_BEAN
-        self.password_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'password' else arcade.color.BLACK_BEAN
-        if True in map(lambda dialog: dialog.active, self.dialogue_box_list):
-            return
+        if self.in_game and self.match_scene is not None:
+            self.match_scene.on_update()
+        else:
+            self.name_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'name' else arcade.color.BLACK_BEAN
+            self.password_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'password' else arcade.color.BLACK_BEAN
+            if True in map(lambda dialog: dialog.active, self.dialogue_box_list):
+                return
 
     def on_key_release(self, symbol, modifiers):
         if self.in_game:
@@ -261,19 +264,21 @@ class BizingoGame(arcade.Window):
             self.in_game = True
         else:
             if payload['event'] == 'movement':
-                self.log = 'Soldier moved from ' + payload['from'] + ' to ' + payload['to']
+                i, j = self.match_scene.get_index_coordinate(payload['from'])
+                piece = self.match_scene.board[i][j]
+                self.log = ('Soldier' if piece < 5 else 'Captain') + ' moved from ' + payload['from'] + ' to ' + payload['to']
                 self.match_scene.receive_move_action(_from=payload['from'], to=payload['to'])
                 if payload['captured']:
+                    i, j = self.match_scene.get_index_coordinate(payload['captured'])
+                    piece = self.match_scene.board[i][j]
+                    self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
                     self.match_scene.receive_capture_action(at=payload['captured'])
+
                 self.match_scene.turn = int(payload['turn'])
-            # if payload['event'] == 'capture':
-            #     self.log = 'Soldier from ' + payload['coordinate'] + ' captured'
-            #     self.match_scene.receive_capture_action(at=payload['coordinate'])
-            # if payload['event'] == 'turnchange':
-            #     self.log = 'Waiting next play'
-            #     self.match_scene.turn = int(payload['turn'])
             if payload['event'] == 'gameover':
-                pass
+                winner_index = int(payload['winner'])
+                self.log = 'Game Over! You ' + 'win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose'
+                self.match_scene.set_game_over(winner_index)
         self.lock.release()
 
     def handle_chat_message(self, payload):

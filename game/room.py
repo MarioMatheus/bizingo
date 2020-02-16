@@ -27,7 +27,6 @@ class Room(Thread):
     
     def receive_data(self, data, from_player):
         module, payload = self.message.decode(data)
-        logging.debug('Received room data | MODULE ' + module + ' | PAYLOAD ' + str(payload))
         if module == 'CHAT':
             self.receive_chat_msg(payload, from_player)
         elif module == 'MATCH':
