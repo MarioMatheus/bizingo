@@ -252,11 +252,25 @@ class BizingoGame(arcade.Window):
             listener.start()
 
     def handle_match_message(self, payload):
+        self.lock.acquire()
         if 'is_initial_player' in payload.keys():
-            self.lock.acquire()
+            is_initial_player = payload['is_initial_player'] == 'True'
+            self.log = 'Your turn, its pieces are the green ones at the top' if is_initial_player else 'Opponent turn, its pieces are the blue ones below'
+            self.match_scene = matchscene.MatchScene(self.conn_socket, is_initial_player)
             self.in_game = True
-            self.match_scene = matchscene.MatchScene(self.conn_socket, bool(payload['is_initial_player']))
-            self.lock.release()
+        else:
+            if payload['event'] == 'movement':
+                self.log = 'Soldier moved from ' + payload['from'] + ' to ' + payload['to']
+                self.match_scene.receive_move_action(_from=payload['from'], to=payload['to'])
+            if payload['event'] == 'capture':
+                self.log = 'Soldier from ' + payload['coordinate'] + ' captured'
+                self.match_scene.receive_capture_action(at=payload['coordinate'])
+            if payload['event'] == 'turnchange':
+                self.log = 'Waiting next play'
+                self.match_scene.turn = int(payload['turn'])
+            if payload['event'] == 'gameover':
+                pass
+        self.lock.release()
 
     def handle_chat_message(self, payload):
         self.match_scene.receive_message(payload['msg'])
@@ -277,6 +291,8 @@ class BizingoGame(arcade.Window):
                         self.handle_match_message(payload)
                     if module == 'CHAT':
                         self.handle_chat_message(payload)
+                    if 'exception' in payload.keys():
+                        self.log = payload['exception'] 
                 else:
                     self.conn_socket.close()
 
@@ -301,8 +317,6 @@ class BizingoGame(arcade.Window):
 
     def conn_will_close(self):
         self.dialogue_box_list[1].active = False
-
-
 
 def main():
     """ Main method """

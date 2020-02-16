@@ -10,10 +10,10 @@ class Match:
         self.players = players
         self.board = deepcopy(originialboard.board)
 
-    def broadcast(self, message):
+    def broadcast(self, message_data):
+        from . import message
         for player in self.players:
-            from . import message
-            player.send(message.GameMessage().encode(message, 'MATCH'))
+            player.send(message.GameMessage().encode(message_data, 'MATCH'))
 
     def get_player_pieces_count(self, player):
         player_piece = self.players.index(player) + 1
@@ -154,11 +154,11 @@ class Match:
         if self.piece_is_surrounded(coordinate):
             self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
 
-    def game_over_to(self, to):
+    def set_game_over(self, to):
         winner_index = 0 if self.players.index(to) == 1 else 1
         self.winner = self.players[winner_index]
         self.game_over = True
-
+        self.broadcast({ 'event': 'gameover', 'winner': str(winner_index) })
 
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)
@@ -186,9 +186,10 @@ class Match:
 
         for p in self.players:
             if self.get_player_pieces_count(p) == 2:
-                return self.game_over(to=p)
+                return self.set_game_over(to=p)
 
         self.turn += 1
+        self.broadcast({ 'event': 'turnchange', 'turn': str(self.turn) })
 
 
     def __str__(self):

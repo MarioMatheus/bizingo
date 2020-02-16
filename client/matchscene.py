@@ -123,9 +123,24 @@ class MatchScene:
             self.connection.send(GameMessage().encode({'msg': message}, 'CHAT'))
         self.chat_messages.insert(0, (sender, message))
 
+    def receive_move_action(self, _from, to):
+        self.swap_triangles_content(_from, to)
+
+    def receive_capture_action(self, at):
+        self.remove_piece_from_board(at)
 
     def receive_message(self, message):
         self.append_chat_message('player2', message)
+
+    def check_piece_move(self, coordinate):
+        if coordinate in map(lambda p: self.get_board_coordinate(p[0], p[1]), self.accessible_positions):
+            self.connection.send(
+                GameMessage().encode({
+                    'action': 'move',
+                    'from': self.selected_coordinate,
+                    'to': coordinate
+                }, 'MATCH')
+            )
 
     def on_draw_chat(self):
         if self.chat_msg_buffer:
@@ -162,7 +177,8 @@ class MatchScene:
 
     def on_draw_board(self):
         self.draw_pieces()
-        self.draw_accessible_triangles()
+        if self.turn % 2 == (0 if self.is_initial_player else 1):
+            self.draw_accessible_triangles()
 
     def on_draw_hud(self):
         arcade.draw_text('Turn: ' + str(self.turn+1), 350, 40, arcade.color.COOL_BLACK, 18)
@@ -175,11 +191,21 @@ class MatchScene:
         self.on_draw_hud()
 
     def on_mouse_release(self, x, y, button, key_modifiers):
+        piece = 1 if self.is_initial_player else 2
+
+        if (self.turn % 2) + 1 not in [piece, piece*10]:
+            return
+        
         board_coordinate = self.get_triangle_coordinate_in_position(x, y)
+        
+        if self.selected_coordinate:
+            row, col = self.get_index_coordinate(self.selected_coordinate)
+            if self.board[row][col] in [piece, piece*10] and len(self.accessible_positions) > 0:
+                self.check_piece_move(board_coordinate)
         self.selected_coordinate = board_coordinate
         if board_coordinate is not None:
             i, j = self.get_index_coordinate(board_coordinate)
-            self.accessible_positions = self.get_adjacent_empty_triangles(i, j)
+            self.accessible_positions = self.get_adjacent_empty_triangles(i, j) if self.board[i][j] in [piece, piece*10] else []
         else:
             self.accessible_positions = []          
 
@@ -193,6 +219,17 @@ class MatchScene:
             self.chat_msg_buffer = self.chat_msg_buffer[:-1]
         elif char != 'del' and len(self.chat_msg_buffer) < 32:
             self.chat_msg_buffer += char
+
+    def swap_triangles_content(self, coordinate1, coordinate2):
+        row1, col1 = self.get_index_coordinate(coordinate1)
+        row2, col2 = self.get_index_coordinate(coordinate2)
+        aux = self.board[row1][col1]
+        self.board[row1][col1] = self.board[row2][col2]
+        self.board[row2][col2] = aux
+
+    def remove_piece_from_board(self, coordinate):
+        row, col = self.get_index_coordinate(coordinate)
+        self.board[row][col] = 0
 
     def get_adjacent_empty_triangles(self, row, column):
         up_lenght = len(self.board[row])-2 if row - 1 < 0 else len(self.board[row-1])
