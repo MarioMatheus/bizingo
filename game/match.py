@@ -160,6 +160,7 @@ class Match:
         winner_index = 0 if self.players.index(to) == 1 else 1
         self.winner = self.players[winner_index]
         self.game_over = True
+        logging.info('Game Over! Winner: Player ' + str(winner_index+1))
         self.broadcast({ 'event': 'gameover', 'winner': str(winner_index) })
 
     def move_piece(self, player, _from, to):

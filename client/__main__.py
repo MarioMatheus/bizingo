@@ -275,9 +275,21 @@ class BizingoGame(arcade.Window):
                     self.match_scene.receive_capture_action(at=payload['captured'])
 
                 self.match_scene.turn = int(payload['turn'])
+            
+            if payload['event'] == 'rematch':
+                if payload['op'] == 'request':
+                    self.match_scene.append_chat_message('game', 'Opponent request a rematch')
+                    self.match_scene.append_chat_message('game', 'Type yes or no to answer it')
+                if payload['op'] == 'confirm':
+                    self.log = 'Match restarted'
+                    self.match_scene = matchscene.MatchScene(self.conn_socket, self.match_scene.is_initial_player)
+                if payload['op'] == 'refused':
+                    self.match_scene.append_chat_message('game', 'Request refused')
+                    self.log = 'Match ended'
+
             if payload['event'] == 'gameover':
                 winner_index = int(payload['winner'])
-                self.log = 'Game Over! You ' + 'win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose'
+                self.log = 'Game Over! You ' + ('win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose')
                 self.match_scene.set_game_over(winner_index)
         self.lock.release()
 

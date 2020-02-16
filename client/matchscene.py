@@ -30,7 +30,10 @@ class MatchScene:
         self.half_height = SCREEN_HEIGHT/2
 
         self.chat_msg_buffer = ''
-        self.chat_messages = [('game', 'Bem Vindo!')]
+        self.chat_messages = [
+            ('game', 'Type /giveup to give up the match'),
+            ('game', 'Bem Vindo!')
+        ]
 
         self.board = deepcopy(originialboard.board)
         self.board_coordinates = deepcopy(originialboard.board)
@@ -124,10 +127,18 @@ class MatchScene:
 
     def set_game_over(self, winner_index):
         self.game_over = True
+        self.append_chat_message('game', 'Type /rematch to restart the match')
 
     def append_chat_message(self, sender, message):
         if sender == 'you':
-            self.connection.send(GameMessage().encode({'msg': message}, 'CHAT'))
+            if message == '/giveup':
+                self.connection.send(GameMessage().encode({'action': 'giveup'}, 'MATCH'))
+            elif self.game_over and message == '/rematch':
+                self.connection.send(GameMessage().encode({'action': 'rematch', 'op': 'request'}, 'MATCH'))
+            elif self.game_over and message in ['yes', 'no']:
+                self.connection.send(GameMessage().encode({'action': 'rematch', 'op': message}, 'MATCH'))
+            else:
+                self.connection.send(GameMessage().encode({'msg': message}, 'CHAT'))
         self.chat_messages.insert(0, (sender, message))
 
     def receive_move_action(self, _from, to):

@@ -44,9 +44,20 @@ class Room(Thread):
         try:
             if payload['action'] == 'move':
                 self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
-            if self.bizingo_match.game_over and self.bizingo_match.winner is not None:
-                self.broadcast({ 'event': 'Game Over!', 'winner': self.players[self.bizingo_match.winner]['name'] })
-                logging.info('Game Over!')
+            if payload['action'] == 'giveup':
+                self.bizingo_match.set_game_over(to=player)
+            if payload['action'] == 'rematch':
+                if payload['op'] == 'request':
+                    for p in self.bizingo_match.players:
+                        if p != player:
+                            self.broadcast({'event': 'rematch', 'op': 'request'}, to_player=p)
+                if payload['op'] == 'yes':
+                    self.bizingo_match = match.Match(self.bizingo_match.players)
+                    logging.info('Match Restarted')
+                    self.broadcast({'event': 'rematch', 'op': 'confirm'})
+                if payload['op'] == 'no':
+                    logging.info('Match Ended')
+                    self.broadcast({'event': 'rematch', 'op': 'refused'})
         except Exception as identifier:
             self.broadcast({ 'exception': str(identifier) }, to_player=player)
             logging.warning('Exception occurred ' + str(identifier))
