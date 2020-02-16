@@ -9,6 +9,7 @@ from . import utils, components, matchscene
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Bizingo"
+FPS = 30
 
 class BizingoGame(arcade.Window):
 
@@ -324,6 +325,7 @@ class BizingoGame(arcade.Window):
 def main():
     """ Main method """
     game = BizingoGame(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
+    game.set_update_rate(1 / FPS)
     game.setup()
     arcade.run()
 

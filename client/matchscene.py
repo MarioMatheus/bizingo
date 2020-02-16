@@ -38,6 +38,8 @@ class MatchScene:
         self.selected_coordinate = None
         self.accessible_positions = []
 
+        self.sprites_to_remove_list = []
+
         self.setup()
 
     def setup(self):
@@ -46,6 +48,7 @@ class MatchScene:
         self.setup_board_sprites()
         self.setup_board_coordinates()
         self.setup_board_coordinates_center()
+        self.setup_piece_sprites()
 
     def load_textures(self):
         self.background = arcade.load_texture(":resources:images/backgrounds/abstract_2.jpg")
@@ -153,7 +156,8 @@ class MatchScene:
                 anchor_x='left' if msg[0] in ['you', 'game'] else 'right'
             )
 
-    def draw_pieces(self):
+    # def draw_pieces(self):
+    def setup_piece_sprites(self):
         for i, row in enumerate(self.board):
             for j, t_content in enumerate(row):
                 if t_content != 0:
@@ -167,8 +171,16 @@ class MatchScene:
                         piece_texture = self.p2_soldier_texture
                     elif t_content == 20:
                         piece_texture = self.p2_captain_texture
-                    texture_alpha = 155 if self.get_board_coordinate(i, j) == self.selected_coordinate else 255
-                    arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture, alpha=texture_alpha)
+                    # texture_alpha = 155 if self.get_board_coordinate(i, j) == self.selected_coordinate else 255
+                    sprite = arcade.Sprite()
+                    sprite.texture = piece_texture
+                    sprite.width = 30
+                    sprite.height = 35
+                    sprite.center_x = piece_point[0]
+                    sprite.center_y = piece_point[1]
+                    sprite.properties['indexpath'] = {'i': i, 'j': j}
+                    self.sprite_list.append(sprite)
+                    # arcade.draw_lrwh_rectangle_textured(piece_point[0]-15, piece_point[1]-17.5, 30, 35, piece_texture, alpha=texture_alpha)
 
     def draw_accessible_triangles(self):
         for i, j in self.accessible_positions:
@@ -176,7 +188,7 @@ class MatchScene:
             arcade.draw_circle_filled(position[0], position[1] - 8, 8, arcade.color.REDWOOD)
 
     def on_draw_board(self):
-        self.draw_pieces()
+        # self.draw_pieces()
         if self.turn % 2 == (0 if self.is_initial_player else 1):
             self.draw_accessible_triangles()
 
@@ -189,6 +201,12 @@ class MatchScene:
         self.on_draw_chat()
         self.on_draw_board()
         self.on_draw_hud()
+
+    def on_update(self):
+        if self.sprites_to_remove_list:
+            for sprite in self.sprites_to_remove_list:
+                self.sprite_list.remove(sprite)
+            self.sprites_to_remove_list = []
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         piece = 1 if self.is_initial_player else 2
@@ -226,10 +244,25 @@ class MatchScene:
         aux = self.board[row1][col1]
         self.board[row1][col1] = self.board[row2][col2]
         self.board[row2][col2] = aux
+        for sprite in self.sprite_list:
+            if 'indexpath' in sprite.properties.keys() and row1 == sprite.properties['indexpath']['i'] and col1 == sprite.properties['indexpath']['j']:
+                x, y = self.board_coordinates_center[row2][col2]
+                sprite.center_x = x
+                sprite.center_y = y
+                sprite.properties['indexpath'] = {'i': row2, 'j': col2}
+                return
 
     def remove_piece_from_board(self, coordinate):
         row, col = self.get_index_coordinate(coordinate)
         self.board[row][col] = 0
+        removed_sprite = None
+        for sprite in self.sprite_list:
+            if 'indexpath' in sprite.properties.keys() and row == sprite.properties['indexpath']['i'] and col == sprite.properties['indexpath']['j']:
+                removed_sprite = sprite
+                break
+        if removed_sprite is not None and removed_sprite in self.sprite_list:
+            self.sprites_to_remove_list.append(removed_sprite)
+            # self.sprite_list.remove(removed_sprite)
 
     def get_adjacent_empty_triangles(self, row, column):
         up_lenght = len(self.board[row])-2 if row - 1 < 0 else len(self.board[row-1])
