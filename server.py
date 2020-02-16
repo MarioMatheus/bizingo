@@ -33,6 +33,7 @@ def handle_join_action(user, payload):
             lock.release()
             logging.debug(str(host_data))
             host_room = host_data.pop('room')
+            user.send(message.GameMessage().encode({'res': 'Join accepted'}, 'ROOM'))
             new_room = room.Room({ host: host_data, user: user_data })
             new_room.setName('Room: ' + host_room['name'])
             new_room.start()

@@ -33,6 +33,6 @@ def check_mouse_release_for_buttons(_x, _y, button_list):
 def map_key_symbol_to_char(symbol):
     if symbol == 65288:
         return 'del'
-    if symbol not in range(97, 123) and symbol not in range(48, 59) and symbol not in [32, 45, 46, 47, 95]:
+    if symbol not in range(97, 123) and symbol not in range(48, 59) and symbol not in [32, 44, 45, 46, 47, 63, 95]:
         return ''
     return chr(symbol)

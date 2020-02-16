@@ -64,10 +64,13 @@ class Room(Thread):
 
     def run(self):
         logging.debug(self.getName() + ' started')
-        self.broadcast({
-            'info': 'Bem Vindo a Bizingo!',
-            'initial_player': self.players[self.bizingo_match.players[0]]['name']
-        })
+        for player in self.bizingo_match.players:
+            player.send(
+                self.message.encode({
+                    'info': 'Bem Vindo a Bizingo!',
+                    'is_initial_player': self.bizingo_match.players.index(player) == 0
+                }, 'MATCH')
+            )
         while True:
             read_connections, _, _ = select.select(list(self.players.keys()), [], [])
             for player in read_connections:

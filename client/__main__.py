@@ -2,6 +2,7 @@ import arcade
 import random
 import os
 import socket
+import threading
 
 from . import utils, components, matchscene
 
@@ -9,22 +10,22 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 SCREEN_TITLE = "Bizingo"
 
-IN_GAME = True
-
 class BizingoGame(arcade.Window):
 
     def __init__(self, width, height, title):
         super().__init__(width, height, title)
 
+        self.lock = threading.Lock()
         file_path = os.path.dirname(os.path.abspath(__file__))
         os.chdir(file_path)
 
+        self.match_scene = None
+        self.in_game = False
         self.conn_socket = socket.socket()
-        self.match_scene = matchscene.MatchScene()
 
         self.log = ''
 
-        self.server_address = 'server:80'
+        self.server_address = 'localhost:9999'
         self.connected = False
 
         self.room_mode = 'Create'
@@ -160,13 +161,13 @@ class BizingoGame(arcade.Window):
     def on_draw(self):
         arcade.start_render()
         
-        if IN_GAME and self.match_scene is not None:
+        if self.in_game and self.match_scene is not None:
             self.match_scene.on_draw()
         else:
             self.on_draw_menu()
         
         if self.log:
-            arcade.draw_text(self.log, 500 if IN_GAME else 10, 10, arcade.color.BLACK_OLIVE if IN_GAME else arcade.color.WHITE, 14)
+            arcade.draw_text(self.log, 350 if self.in_game else 10, 10, arcade.color.BLACK_OLIVE if self.in_game else arcade.color.WHITE, 14)
 
     def on_update(self, delta_time):
         self.name_field_color = arcade.color.WHITE_SMOKE if self.active_room_field == 'name' else arcade.color.BLACK_BEAN
@@ -175,7 +176,7 @@ class BizingoGame(arcade.Window):
             return
 
     def on_key_release(self, symbol, modifiers):
-        if IN_GAME:
+        if self.in_game:
             return self.match_scene.on_key_release(symbol, modifiers)
         if True not in map(lambda dialog: dialog.active, self.dialogue_box_list):
             return
@@ -204,7 +205,7 @@ class BizingoGame(arcade.Window):
         )
 
     def on_mouse_release(self, x, y, button, key_modifiers):
-        if IN_GAME:
+        if self.in_game:
             return self.match_scene.on_mouse_release(x, y, button, key_modifiers)
         if self.dialogue_box_list[1].active and utils.check_click_at_rect(x, y, self.name_field_rect):
             self.active_room_field = 'name'
@@ -247,13 +248,18 @@ class BizingoGame(arcade.Window):
         if 'accepted' not in payload['res']:
             self.in_room_standby = False
         else:
-            self.handle_server_contact()
+            listener = threading.Thread(target=self.handle_server_contact, args=(), name='Server Listener')
+            listener.start()
 
     def handle_match_message(self, payload):
-        if 'initial_player' in payload.keys():
-            IN_GAME = True
-            print(IN_GAME)
-            self.match_scene = matchscene.MatchScene()
+        if 'is_initial_player' in payload.keys():
+            self.lock.acquire()
+            self.in_game = True
+            self.match_scene = matchscene.MatchScene(self.conn_socket, bool(payload['is_initial_player']))
+            self.lock.release()
+
+    def handle_chat_message(self, payload):
+        self.match_scene.receive_message(payload['msg'])
 
     def handle_server_contact(self):
         import select
@@ -268,7 +274,9 @@ class BizingoGame(arcade.Window):
                     if module == 'ROOM':
                         return self.handle_room_message(payload)
                     if module == 'MATCH':
-                        return self.handle_match_message(payload)
+                        self.handle_match_message(payload)
+                    if module == 'CHAT':
+                        self.handle_chat_message(payload)
                 else:
                     self.conn_socket.close()
 

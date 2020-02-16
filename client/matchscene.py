@@ -2,6 +2,7 @@ import arcade
 from copy import deepcopy
 from . import utils
 from game import originialboard
+from game.message import GameMessage
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -18,7 +19,11 @@ P1_SOLDIER_RES = ':resources:images/enemies/slimeGreen.png'
 
 
 class MatchScene:
-    def __init__(self):
+    def __init__(self, connection, is_initial_player):
+        self.connection = connection
+        self.is_initial_player = is_initial_player
+        self.turn = 0
+
         self.sprite_list = arcade.SpriteList()
         self.half_width = SCREEN_WIDTH/2
         self.half_height = SCREEN_HEIGHT/2
@@ -113,15 +118,24 @@ class MatchScene:
                     return self.get_board_coordinate(i, j)
         return None
 
+    def append_chat_message(self, sender, message):
+        if sender == 'you':
+            self.connection.send(GameMessage().encode({'msg': message}, 'CHAT'))
+        self.chat_messages.insert(0, (sender, message))
+
+
+    def receive_message(self, message):
+        self.append_chat_message('player2', message)
+
     def on_draw_chat(self):
         if self.chat_msg_buffer:
             arcade.draw_text(self.chat_msg_buffer, 15, 10, arcade.color.WHITE, 12)
         for i, msg in enumerate(self.chat_messages[:25]):
             arcade.draw_text(msg[1],
-                15 if msg[0] in ['you', 'game'] else 200, 50 + 25 * i,
-                arcade.color.BLACK_OLIVE if msg[0]=='you' else arcade.color.PURPLE if msg[0]=='game' else arcade.color.BLUE_GREEN,
+                20 if msg[0] in ['you', 'game'] else 230, 50 + 25 * i,
+                arcade.color.SMOKY_BLACK if msg[0]=='you' else arcade.color.PURPLE if msg[0]=='game' else arcade.color.BLUE_GREEN,
                 12, bold=(msg[0]=='game'),
-                align='left' if msg[0] in ['you', 'game'] else 'right'
+                anchor_x='left' if msg[0] in ['you', 'game'] else 'right'
             )
 
     def draw_pieces(self):
@@ -149,13 +163,16 @@ class MatchScene:
     def on_draw_board(self):
         self.draw_pieces()
         self.draw_accessible_triangles()
-        
+
+    def on_draw_hud(self):
+        arcade.draw_text('Turn: ' + str(self.turn+1), 350, 40, arcade.color.COOL_BLACK, 18)
 
     def on_draw(self):
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
         self.sprite_list.draw()
         self.on_draw_chat()
         self.on_draw_board()
+        self.on_draw_hud()
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         board_coordinate = self.get_triangle_coordinate_in_position(x, y)
@@ -164,12 +181,11 @@ class MatchScene:
             i, j = self.get_index_coordinate(board_coordinate)
             self.accessible_positions = self.get_adjacent_empty_triangles(i, j)
         else:
-            self.accessible_positions = []
-            
+            self.accessible_positions = []          
 
     def on_key_release(self, symbol, modifiers):
         if symbol == 65293 and self.chat_msg_buffer:
-            self.chat_messages.insert(0, ('you', self.chat_msg_buffer))
+            self.append_chat_message('you', self.chat_msg_buffer)
             self.chat_msg_buffer = ''
             return
         char = utils.map_key_symbol_to_char(symbol)
