@@ -262,12 +262,15 @@ class BizingoGame(arcade.Window):
             if payload['event'] == 'movement':
                 self.log = 'Soldier moved from ' + payload['from'] + ' to ' + payload['to']
                 self.match_scene.receive_move_action(_from=payload['from'], to=payload['to'])
-            if payload['event'] == 'capture':
-                self.log = 'Soldier from ' + payload['coordinate'] + ' captured'
-                self.match_scene.receive_capture_action(at=payload['coordinate'])
-            if payload['event'] == 'turnchange':
-                self.log = 'Waiting next play'
+                if payload['captured']:
+                    self.match_scene.receive_capture_action(at=payload['captured'])
                 self.match_scene.turn = int(payload['turn'])
+            # if payload['event'] == 'capture':
+            #     self.log = 'Soldier from ' + payload['coordinate'] + ' captured'
+            #     self.match_scene.receive_capture_action(at=payload['coordinate'])
+            # if payload['event'] == 'turnchange':
+            #     self.log = 'Waiting next play'
+            #     self.match_scene.turn = int(payload['turn'])
             if payload['event'] == 'gameover':
                 pass
         self.lock.release()

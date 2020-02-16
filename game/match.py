@@ -77,7 +77,8 @@ class Match:
     def remove_piece_from_board(self, coordinate, by):
         row, col = self.get_index_coordinate(coordinate)
         self.board[row][col] = 0
-        self.broadcast({ 'event': 'capture', 'coordinate': coordinate })
+        return coordinate
+        # self.broadcast({ 'event': 'capture', 'coordinate': coordinate })
 
     def enemy_bottom_triangle_coordinate(self, coordinate):
         row, column = self.get_index_coordinate(coordinate)
@@ -152,7 +153,8 @@ class Match:
             if self.piece_is_surrounded(capture_coordinate):
                 return self.remove_piece_from_board(capture_coordinate, by=player)
         if self.piece_is_surrounded(coordinate):
-            self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
+            return self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
+        return ''
 
     def set_game_over(self, to):
         winner_index = 0 if self.players.index(to) == 1 else 1
@@ -180,16 +182,22 @@ class Match:
             raise Exception('You can only move pieces to empty triangles')
 
         self.swap_triangles_content(_from, to)
-        self.broadcast({ 'event': 'movement', 'from': _from, 'to': to })
 
-        self.check_custody_capture(player, to)   
+        captured_piece = self.check_custody_capture(player, to)   
 
         for p in self.players:
             if self.get_player_pieces_count(p) == 2:
                 return self.set_game_over(to=p)
 
         self.turn += 1
-        self.broadcast({ 'event': 'turnchange', 'turn': str(self.turn) })
+        self.broadcast({
+            'event': 'movement',
+            'from': _from,
+            'to': to,
+            'captured': captured_piece,
+            'turn': str(self.turn)
+        })
+        # self.broadcast({ 'event': 'turnchange', 'turn': str(self.turn) })
 
 
     def __str__(self):
