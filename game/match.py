@@ -156,12 +156,12 @@ class Match:
             return self.remove_piece_from_board(coordinate, by=self.players[0 if player_index == 1 else 1])
         return ''
 
-    def set_game_over(self, to):
+    def set_game_over(self, captured_piece, to):
         winner_index = 0 if self.players.index(to) == 1 else 1
         self.winner = self.players[winner_index]
         self.game_over = True
         logging.info('Game Over! Winner: Player ' + str(winner_index+1))
-        self.broadcast({ 'event': 'gameover', 'winner': str(winner_index) })
+        self.broadcast({ 'event': 'gameover', 'captured': captured_piece, 'winner': str(winner_index) })
 
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)
@@ -188,7 +188,7 @@ class Match:
 
         for p in self.players:
             if self.get_player_pieces_count(p) == 2:
-                return self.set_game_over(to=p)
+                return self.set_game_over(captured_piece, to=p)
 
         self.turn += 1
         self.broadcast({

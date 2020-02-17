@@ -288,6 +288,11 @@ class BizingoGame(arcade.Window):
                     self.log = 'Match ended'
 
             if payload['event'] == 'gameover':
+                if payload['captured']:
+                    i, j = self.match_scene.get_index_coordinate(payload['captured'])
+                    piece = self.match_scene.board[i][j]
+                    self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
+                    self.match_scene.receive_capture_action(at=payload['captured'])
                 winner_index = int(payload['winner'])
                 self.log = 'Game Over! You ' + ('win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose')
                 self.match_scene.set_game_over(winner_index)

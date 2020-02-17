@@ -16,6 +16,7 @@ P2_CAPTAIN_RES = ':resources:images/animated_characters/robot/robot_idle.png'
 P2_SOLDIER_RES = ':resources:images/enemies/slimeBlue.png'
 P1_CAPTAIN_RES = ':resources:images/animated_characters/zombie/zombie_idle.png'
 P1_SOLDIER_RES = ':resources:images/enemies/slimeGreen.png'
+ACCESSIBLE_RES = ':resources:images/items/gemYellow.png'
 
 
 class MatchScene:
@@ -42,6 +43,8 @@ class MatchScene:
         self.selected_coordinate = None
         self.accessible_positions = []
 
+        self.accessible_sprites = []
+        self.sprites_to_add_list = []
         self.sprites_to_remove_list = []
 
         self.setup()
@@ -60,6 +63,7 @@ class MatchScene:
         self.p1_soldier_texture = arcade.load_texture(P1_SOLDIER_RES)
         self.p2_captain_texture = arcade.load_texture(P2_CAPTAIN_RES)
         self.p2_soldier_texture = arcade.load_texture(P2_SOLDIER_RES)
+        self.accessible_texture = arcade.load_texture(ACCESSIBLE_RES)
 
     def setup_chat_sprites(self):
         chat_bg = arcade.Sprite(':resources:gui_themes/Fantasy/Menu/Menu.png')
@@ -199,6 +203,18 @@ class MatchScene:
             position = self.board_coordinates_center[i][j]
             arcade.draw_circle_filled(position[0], position[1] - 8, 8, arcade.color.REDWOOD)
 
+    def update_accessible_sprites(self):
+        self.sprites_to_remove_list += self.accessible_sprites
+        for i, j in self.accessible_positions:
+            sprite = arcade.Sprite()
+            sprite.texture = self.accessible_texture
+            sprite.width = 30
+            sprite.height = 30
+            piece_point = self.board_coordinates_center[i][j]
+            sprite.center_x = piece_point[0]
+            sprite.center_y = piece_point[1] - 10
+            self.sprites_to_add_list.append(sprite)
+
     def on_draw_board(self):
         if self.turn % 2 == (0 if self.is_initial_player else 1):
             self.draw_accessible_triangles()
@@ -210,16 +226,27 @@ class MatchScene:
         arcade.draw_lrwh_rectangle_textured(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, self.background)
         self.sprite_list.draw()
         self.on_draw_chat()
-        self.on_draw_board()
+        # self.on_draw_board()
         self.on_draw_hud()
 
     def on_update(self):
         if len(self.sprites_to_remove_list) > 0:
             for sprite in self.sprites_to_remove_list:
+                if sprite in self.accessible_sprites:
+                    self.accessible_sprites.remove(sprite)
                 self.sprite_list.remove(sprite)
             self.sprites_to_remove_list = []
 
+        if len(self.sprites_to_add_list) > 0:
+            for sprite in self.sprites_to_add_list:
+                self.accessible_sprites.append(sprite)
+                self.sprite_list.append(sprite)
+            self.sprites_to_add_list = []
+
     def on_mouse_release(self, x, y, button, key_modifiers):
+        if self.game_over:
+            return
+
         piece = 1 if self.is_initial_player else 2
 
         if (self.turn % 2) + 1 not in [piece, piece*10]:
@@ -236,7 +263,8 @@ class MatchScene:
             i, j = self.get_index_coordinate(board_coordinate)
             self.accessible_positions = self.get_adjacent_empty_triangles(i, j) if self.board[i][j] in [piece, piece*10] else []
         else:
-            self.accessible_positions = []          
+            self.accessible_positions = []
+        self.update_accessible_sprites()
 
     def on_key_release(self, symbol, modifiers):
         if symbol == 65293 and self.chat_msg_buffer:

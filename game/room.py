@@ -45,7 +45,7 @@ class Room(Thread):
             if payload['action'] == 'move':
                 self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
             if payload['action'] == 'giveup':
-                self.bizingo_match.set_game_over(to=player)
+                self.bizingo_match.set_game_over('', to=player)
             if payload['action'] == 'rematch':
                 if payload['op'] == 'request':
                     for p in self.bizingo_match.players:
