@@ -47,6 +47,8 @@ class MatchScene:
         self.sprites_to_add_list = []
         self.sprites_to_remove_list = []
 
+        self.to_clean = True
+
         self.setup()
 
     def setup(self):
@@ -213,6 +215,7 @@ class MatchScene:
             piece_point = self.board_coordinates_center[i][j]
             sprite.center_x = piece_point[0]
             sprite.center_y = piece_point[1] - 10
+            self.accessible_sprites.append(sprite)
             self.sprites_to_add_list.append(sprite)
 
     def on_draw_board(self):
@@ -230,6 +233,10 @@ class MatchScene:
         self.on_draw_hud()
 
     def on_update(self):
+        if self.turn > 0 and self.turn % 5 == 0 and self.to_clean:
+            self.clean_sprite_list()
+            self.to_clean = False
+
         if len(self.sprites_to_remove_list) > 0:
             for sprite in self.sprites_to_remove_list:
                 if sprite in self.accessible_sprites:
@@ -239,9 +246,14 @@ class MatchScene:
 
         if len(self.sprites_to_add_list) > 0:
             for sprite in self.sprites_to_add_list:
-                self.accessible_sprites.append(sprite)
+                # self.accessible_sprites.append(sprite)
                 self.sprite_list.append(sprite)
             self.sprites_to_add_list = []
+
+    def clean_sprite_list(self):
+        aux_list = deepcopy(self.sprite_list)
+        self.sprites_to_remove_list = self.sprite_list
+        self.sprites_to_add_list = aux_list
 
     def on_mouse_release(self, x, y, button, key_modifiers):
         if self.game_over:
@@ -278,6 +290,7 @@ class MatchScene:
             self.chat_msg_buffer += char
 
     def swap_triangles_content(self, coordinate1, coordinate2):
+        self.to_clean = True
         row1, col1 = self.get_index_coordinate(coordinate1)
         row2, col2 = self.get_index_coordinate(coordinate2)
         aux = self.board[row1][col1]
