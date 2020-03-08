@@ -11,10 +11,9 @@ class Chat:
         self.messages = []
 
     def broadcast_message(self, message_data, client):
-        self.messages.append(message_data)
         for user in self.users:
             if user != client:
-                user.send(message_data)
+                self.messages.append(user.send_message(message_data))
 
 class Room(Thread):
     def __init__(self, players):
@@ -32,6 +31,9 @@ class Room(Thread):
         self.bizingo_match = match.Match(clients)
         self.chat = Chat(clients)
         self.message = message.GameMessage()
+
+    def get_service_by_id(self, identifier):
+        return self.client_services[identifier]
     
     def receive_data(self, data, from_player):
         module, payload = self.message.decode(data)
@@ -40,13 +42,13 @@ class Room(Thread):
         elif module == 'MATCH':
             self.receive_match_msg(payload, from_player)
 
-    def receive_chat_msg(self, payload, player):
+    def receive_chat_msg(self, message_data, identifier):
         try:
-            message_data = self.message.encode(payload, 'CHAT')
+            player = self.get_service_by_id(identifier)
             self.chat.broadcast_message(message_data, player)
-            logging.info('Chat msg sent from player ' + self.players[player]['name'] + ' | IP ' + self.players[player]['addr'][0])
+            logging.info('Chat msg sent from player ' + identifier)
         except:
-            logging.warning('Error to send message from player ' + self.players[player]['name'])
+            logging.warning('Error to send message from player ' + identifier)
 
     def receive_match_msg(self, payload, player):
         try:

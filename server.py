@@ -115,6 +115,17 @@ import select
 #         logging.info('Connection has been stablished! | IP ' + address[0] + ' | PORT ' + str(address[1]))
 #         append_in_queue(connection, address)
 
+def create_match(host_id, user_id):
+    host_data = users_queue.pop(host_id)
+    user_data = users_queue.pop(user_id)
+    new_room = room.Room({
+        host_id: { **host_data, 'addr': connected_players[host_id] },
+        user_id: { **user_data, 'addr': connected_players[user_id] }
+    })
+    new_room.setName('ROOM: ' + host_data['room']['name'])
+    match_rooms.append(new_room)
+    new_room.start()
+
 def create_room(user_id, username, room_name, room_password):
     def search_room(user_id):
         return users_queue[user_id]['room']['name'] == room_name
@@ -152,24 +163,16 @@ def join_room(user_id, username, room_name, room_password):
         host_id = hosts[0]
         if users_queue[host_id]['room']['password'] == room_password:
             logging.info('Creating new room')
-            host_data = users_queue.pop(host_id)
-            user_data = users_queue.pop(user_id)
-            new_room = room.Room({
-                host_id: { **host_data, 'addr': connected_players[host_id] },
-                user_id: { **user_data, 'addr': connected_players[user_id] }
-            })
-            new_room.setName('ROOM: ' + host_data['room']['name'])
-            new_room.start()
+            create_match(host_id, user_id)
             return (True, 'Join accepted')
 
-def configLogger():
-    logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
-    consoleHandler = logging.StreamHandler(sys.stdout)
-    consoleHandler.setFormatter(logFormatter)
-    fileHandler = logging.handlers.TimedRotatingFileHandler('logs/bizingo', when='midnight', interval=1)
-    fileHandler.suffix = '%Y%m%d.log'
-    fileHandler.setFormatter(logFormatter)
-    logging.basicConfig(level=logging.DEBUG, handlers=[fileHandler, consoleHandler])
+def send_message(user_id, message):
+    match = list(filter(lambda room: user_id in room.players.keys(), match_rooms))
+    if match:
+        match[0].receive_chat_msg(message, user_id)
+        return message
+    return 'Player not found'
+        
 
 def generate_id():
     from uuid import uuid4
@@ -194,15 +197,26 @@ def create_rpc_server():
             return identifier
 
         rpc_server.register_function(request_identifier)
+        rpc_server.register_function(close)
         rpc_server.register_function(create_room)
         rpc_server.register_function(join_room)
-        rpc_server.register_function(close)
+        rpc_server.register_function(send_message)
 
         try:
             logging.info('RPC Server on')
             rpc_server.serve_forever()
         except Exception as exc:
             logging.error('Exception at start RPC Server: ' + str(exc))
+
+
+def configLogger():
+    logFormatter = logging.Formatter('%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s')
+    consoleHandler = logging.StreamHandler(sys.stdout)
+    consoleHandler.setFormatter(logFormatter)
+    fileHandler = logging.handlers.TimedRotatingFileHandler('logs/bizingo', when='midnight', interval=1)
+    fileHandler.suffix = '%Y%m%d.log'
+    fileHandler.setFormatter(logFormatter)
+    logging.basicConfig(level=logging.DEBUG, handlers=[fileHandler, consoleHandler])
 
 
 if __name__ == "__main__":

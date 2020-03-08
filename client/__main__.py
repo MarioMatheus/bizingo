@@ -261,9 +261,13 @@ class BizingoGame(arcade.Window):
 
     def setup_match(self, is_initial_player):
         self.log = 'Your turn, its pieces are the green ones at the top' if is_initial_player else 'Opponent turn, its pieces are the blue ones below'
-        self.match_scene = matchscene.MatchScene(self.service, is_initial_player)
+        self.match_scene = matchscene.MatchScene(self.identifier, self.service, is_initial_player)
         self.in_game = True
         return True
+
+    def send_message(self, message):
+        self.match_scene.append_chat_message('player2', message)
+        return message
 
     def create_rpc_client_server(self):
         with SimpleXMLRPCServer(('localhost', 0)) as rpc_server:
@@ -271,6 +275,7 @@ class BizingoGame(arcade.Window):
             try:
                 # rpc_server.register_instance(self, allow_dotted_names=True)
                 rpc_server.register_function(self.setup_match)
+                rpc_server.register_function(self.send_message)
 
                 self.lock.acquire()
                 self.identifier = self.service.request_identifier(rpc_server.socket.getsockname())
