@@ -162,13 +162,16 @@ class MatchScene:
 
     def check_piece_move(self, coordinate):
         if coordinate in map(lambda p: self.get_board_coordinate(p[0], p[1]), self.accessible_positions):
-            self.connection.send(
-                GameMessage().encode({
-                    'action': 'move',
-                    'from': self.selected_coordinate,
-                    'to': coordinate
-                }, 'MATCH')
-            )
+            _ = self.connection.move_piece(self.identifier, self.selected_coordinate, coordinate)
+            return None
+        return self.selected_coordinate
+            # self.connection.send(
+            #     GameMessage().encode({
+            #         'action': 'move',
+            #         'from': self.selected_coordinate,
+            #         'to': coordinate
+            #     }, 'MATCH')
+            # )
 
     def on_draw_chat(self):
         if self.chat_msg_buffer:
@@ -259,11 +262,11 @@ class MatchScene:
             return
         
         board_coordinate = self.get_triangle_coordinate_in_position(x, y)
-        
+
         if self.selected_coordinate:
             row, col = self.get_index_coordinate(self.selected_coordinate)
             if self.board[row][col] in [piece, piece*10] and len(self.accessible_positions) > 0:
-                self.check_piece_move(board_coordinate)
+                board_coordinate = self.check_piece_move(board_coordinate)
         self.selected_coordinate = board_coordinate
         if board_coordinate is not None:
             i, j = self.get_index_coordinate(board_coordinate)

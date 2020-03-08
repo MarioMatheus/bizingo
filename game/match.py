@@ -194,14 +194,17 @@ class Match:
                 return self.set_game_over(captured_piece, to=p)
 
         self.turn += 1
-        self.broadcast({
-            'event': 'movement',
-            'from': _from,
-            'to': to,
-            'captured': captured_piece,
-            'turn': str(self.turn)
-        })
+        for player in self.players:
+            _ = player.move_piece(_from, to, captured_piece, self.turn)
+        # self.broadcast({
+        #     'event': 'movement',
+        #     'from': _from,
+        #     'to': to,
+        #     'captured': captured_piece,
+        #     'turn': str(self.turn)
+        # })
         logging.info('BC::Move piece from ' + _from + ' to ' + to + ' | Captured '+ captured_piece + ' | Turn ' + str(self.turn))
+        return ()
 
     def __str__(self):
         description = 'Match\nBoard:\n'

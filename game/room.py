@@ -54,7 +54,7 @@ class Room(Thread):
         player = self.get_service_by_id(user_id)
         try:
             if payload['action'] == 'move':
-                self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
+                return self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
             if payload['action'] == 'giveup':
                 return self.bizingo_match.set_game_over('', to=player)
             if payload['action'] == 'rematch':

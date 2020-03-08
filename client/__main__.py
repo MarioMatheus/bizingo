@@ -294,6 +294,20 @@ class BizingoGame(arcade.Window):
             self.log = 'Match ended'
         return ()
 
+    def move_piece(self, _from, to, captured, turn):
+        i, j = self.match_scene.get_index_coordinate(_from)
+        piece = self.match_scene.board[i][j]
+        self.log = ('Soldier' if piece < 5 else 'Captain') + ' moved from ' + _from + ' to ' + to
+        self.match_scene.receive_move_action(_from=_from, to=to)
+        if captured:
+            i, j = self.match_scene.get_index_coordinate(captured)
+            piece = self.match_scene.board[i][j]
+            self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + captured
+            self.match_scene.receive_capture_action(at=captured)
+
+        self.match_scene.turn = turn
+        return ()
+
     def create_rpc_client_server(self):
         with SimpleXMLRPCServer(('localhost', 0)) as rpc_server:
             rpc_server.register_introspection_functions()
@@ -304,6 +318,7 @@ class BizingoGame(arcade.Window):
                 rpc_server.register_function(self.set_game_over)
                 rpc_server.register_function(self.request_rematch)
                 rpc_server.register_function(self.reply_rematch)
+                rpc_server.register_function(self.move_piece)
 
                 self.lock.acquire()
                 self.identifier = self.service.request_identifier(rpc_server.socket.getsockname())

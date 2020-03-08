@@ -198,6 +198,12 @@ def reply_rematch(user_id, reply):
         return room.receive_match_msg({ 'action': 'rematch', 'op': reply }, user_id)
     return ()
 
+def move_piece(user_id, _from, to):
+    room = get_room_where_user_is(user_id)
+    if room:
+        return room.receive_match_msg({ 'action': 'move', 'from': _from, 'to': to }, user_id)
+    return ()
+
 def generate_id():
     from uuid import uuid4
     return str(uuid4())
@@ -228,6 +234,7 @@ def create_rpc_server():
         rpc_server.register_function(giveup_the_match)
         rpc_server.register_function(request_rematch)
         rpc_server.register_function(reply_rematch)
+        rpc_server.register_function(move_piece)
 
         try:
             logging.info('RPC Server on')
