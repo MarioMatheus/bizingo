@@ -161,7 +161,10 @@ class Match:
         self.winner = self.players[winner_index]
         self.game_over = True
         logging.info('Game Over! Winner: Player ' + str(winner_index+1))
-        self.broadcast({ 'event': 'gameover', 'captured': captured_piece, 'winner': str(winner_index) })
+        # self.broadcast({ 'event': 'gameover', 'captured': captured_piece, 'winner': str(winner_index) })
+        for player in self.players:
+            _ = player.set_game_over(captured_piece, self.winner == player)
+        return ()
 
     def move_piece(self, player, _from, to):
         player_index = self.players.index(player)

@@ -135,19 +135,17 @@ class MatchScene:
         self.append_chat_message('game', 'Type /rematch to restart the match')
 
     def append_chat_message(self, sender, message):
-        response_message = ''
+        self.chat_messages.insert(0, (sender, message))
         if sender == 'you':
             if message == '/giveup':
-                self.connection.send(GameMessage().encode({'action': 'giveup'}, 'MATCH'))
+                # self.connection.send(GameMessage().encode({'action': 'giveup'}, 'MATCH'))
+                _ = self.connection.giveup_the_match(self.identifier)
             elif self.game_over and message == '/rematch':
                 self.connection.send(GameMessage().encode({'action': 'rematch', 'op': 'request'}, 'MATCH'))
             elif self.game_over and message in ['yes', 'no']:
                 self.connection.send(GameMessage().encode({'action': 'rematch', 'op': message}, 'MATCH'))
             else:
                 _ = self.connection.send_message(self.identifier, message)
-        self.chat_messages.insert(0, (sender, message))
-        if response_message:
-            self.chat_messages.insert(0, (sender, response_message))
 
     def receive_move_action(self, _from, to):
         self.swap_triangles_content(_from, to)

@@ -167,19 +167,24 @@ def join_room(user_id, username, room_name, room_password):
             return (True, 'Join accepted')
 
 
-def get_match_where_user_is(user_id):
-    match = list(filter(lambda room: user_id in room.players.keys(), match_rooms))
-    if match:
-        return match[0]
+def get_room_where_user_is(user_id):
+    room = list(filter(lambda room: user_id in room.players.keys(), match_rooms))
+    if room:
+        return room[0]
 
 
 def send_message(user_id, message):
-    match = get_match_where_user_is(user_id)
-    if match:
-        match.receive_chat_msg(message, user_id)
+    room = get_room_where_user_is(user_id)
+    if room:
+        room.receive_chat_msg(message, user_id)
         return message
     return ''
-        
+
+def giveup_the_match(user_id):
+    room = get_room_where_user_is(user_id)
+    if room:
+        return room.receive_match_msg({ 'action': 'giveup' }, user_id)
+    return ('',)
 
 def generate_id():
     from uuid import uuid4
@@ -208,6 +213,7 @@ def create_rpc_server():
         rpc_server.register_function(create_room)
         rpc_server.register_function(join_room)
         rpc_server.register_function(send_message)
+        rpc_server.register_function(giveup_the_match)
 
         try:
             logging.info('RPC Server on')

@@ -50,12 +50,13 @@ class Room(Thread):
         except:
             logging.warning('Error to send message from player ' + identifier)
 
-    def receive_match_msg(self, payload, player):
+    def receive_match_msg(self, payload, user_id):
+        player = self.get_service_by_id(user_id)
         try:
             if payload['action'] == 'move':
                 self.bizingo_match.move_piece(player, _from=payload['from'], to=payload['to'])
             if payload['action'] == 'giveup':
-                self.bizingo_match.set_game_over('', to=player)
+                return self.bizingo_match.set_game_over('', to=player)
             if payload['action'] == 'rematch':
                 if payload['op'] == 'request':
                     for p in self.bizingo_match.players:

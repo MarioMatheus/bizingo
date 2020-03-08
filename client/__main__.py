@@ -269,6 +269,16 @@ class BizingoGame(arcade.Window):
         self.match_scene.append_chat_message('player2', message)
         return message
 
+    def set_game_over(self, captured_piece, is_winner):
+        if captured_piece:
+            i, j = self.match_scene.get_index_coordinate(captured_piece)
+            piece = self.match_scene.board[i][j]
+            self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + captured_piece
+            self.match_scene.receive_capture_action(at=captured_piece)
+        self.log = 'Game Over! You ' + ('win' if is_winner else 'lose')
+        self.match_scene.set_game_over(is_winner)
+        return ()
+
     def create_rpc_client_server(self):
         with SimpleXMLRPCServer(('localhost', 0)) as rpc_server:
             rpc_server.register_introspection_functions()
@@ -276,6 +286,7 @@ class BizingoGame(arcade.Window):
                 # rpc_server.register_instance(self, allow_dotted_names=True)
                 rpc_server.register_function(self.setup_match)
                 rpc_server.register_function(self.send_message)
+                rpc_server.register_function(self.set_game_over)
 
                 self.lock.acquire()
                 self.identifier = self.service.request_identifier(rpc_server.socket.getsockname())
