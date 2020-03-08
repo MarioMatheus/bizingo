@@ -166,12 +166,19 @@ def join_room(user_id, username, room_name, room_password):
             create_match(host_id, user_id)
             return (True, 'Join accepted')
 
-def send_message(user_id, message):
+
+def get_match_where_user_is(user_id):
     match = list(filter(lambda room: user_id in room.players.keys(), match_rooms))
     if match:
-        match[0].receive_chat_msg(message, user_id)
+        return match[0]
+
+
+def send_message(user_id, message):
+    match = get_match_where_user_is(user_id)
+    if match:
+        match.receive_chat_msg(message, user_id)
         return message
-    return 'Player not found'
+    return ''
         
 
 def generate_id():
