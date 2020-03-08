@@ -3,6 +3,8 @@ import random
 import os
 import socket
 import threading
+from xmlrpc.client import ServerProxy
+from xmlrpc.server import SimpleXMLRPCServer
 
 from . import utils, components, matchscene
 
@@ -22,7 +24,10 @@ class BizingoGame(arcade.Window):
 
         self.match_scene = None
         self.in_game = False
-        self.conn_socket = socket.socket()
+        # self.conn_socket = socket.socket()
+        self.service = None
+        # self.rpc_server = None
+        self.identifier = None
 
         self.log = ''
 
@@ -46,6 +51,10 @@ class BizingoGame(arcade.Window):
         self.password_field_rect = (self.half_width, self.half_height-50, 340, 35)
         self.name_field_color = arcade.color.WHITE_SMOKE
         self.password_field_color = arcade.color.BLACK_BEAN
+
+    def __del__(self):
+        if self.service is not None:
+            self.service.close(self.identifier)
 
     def setup(self):
         self.button_list = []
@@ -238,106 +247,140 @@ class BizingoGame(arcade.Window):
     def create_connection(self):
         self.log = ''
         self.dialogue_box_list[1].active = False
-        host, port = self.server_address.split(':') if self.server_address and ':' in self.server_address else (self.server_address, 80)
+        # host, port = self.server_address.split(':') if self.server_address and ':' in self.server_address else (self.server_address, 80)
         try:
-            self.conn_socket.connect((host, int(port)))
+            # self.conn_socket.connect((host, int(port)))
+            self.service = ServerProxy('http://' + self.server_address)
+            listener = threading.Thread(target=self.create_rpc_client_server, args=(), name='Server to Server')
+            listener.start()
             self.set_connection(True)
             self.log = 'Connected'
         except Exception as m:
             self.set_connection(False)
             self.log = str(m)
 
-    def handle_room_message(self, payload):
-        self.log = payload['res']
-        if 'accepted' not in payload['res']:
-            self.in_room_standby = False
-        else:
-            listener = threading.Thread(target=self.handle_server_contact, args=(), name='Server Listener')
-            listener.start()
+    def setup_match(self, is_initial_player):
+        self.log = 'Your turn, its pieces are the green ones at the top' if is_initial_player else 'Opponent turn, its pieces are the blue ones below'
+        self.match_scene = matchscene.MatchScene(self.service, is_initial_player)
+        self.in_game = True
+        return True
 
-    def handle_match_message(self, payload):
-        self.lock.acquire()
-        if 'is_initial_player' in payload.keys():
-            is_initial_player = payload['is_initial_player'] == 'True'
-            self.log = 'Your turn, its pieces are the green ones at the top' if is_initial_player else 'Opponent turn, its pieces are the blue ones below'
-            self.match_scene = matchscene.MatchScene(self.conn_socket, is_initial_player)
-            self.in_game = True
-        else:
-            if payload['event'] == 'movement':
-                i, j = self.match_scene.get_index_coordinate(payload['from'])
-                piece = self.match_scene.board[i][j]
-                self.log = ('Soldier' if piece < 5 else 'Captain') + ' moved from ' + payload['from'] + ' to ' + payload['to']
-                self.match_scene.receive_move_action(_from=payload['from'], to=payload['to'])
-                if payload['captured']:
-                    i, j = self.match_scene.get_index_coordinate(payload['captured'])
-                    piece = self.match_scene.board[i][j]
-                    self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
-                    self.match_scene.receive_capture_action(at=payload['captured'])
+    def create_rpc_client_server(self):
+        with SimpleXMLRPCServer(('localhost', 0)) as rpc_server:
+            rpc_server.register_introspection_functions()
+            try:
+                # rpc_server.register_instance(self, allow_dotted_names=True)
+                rpc_server.register_function(self.setup_match)
 
-                self.match_scene.turn = int(payload['turn'])
+                self.lock.acquire()
+                self.identifier = self.service.request_identifier(rpc_server.socket.getsockname())
+                self.lock.release()
+                rpc_server.serve_forever()
+            except Exception as m:
+                self.lock.acquire()
+                self.set_connection(False)
+                self.lock.release()
+                self.log = str(m)
+
+    # def handle_room_message(self, payload):
+    #     self.log = payload['res']
+    #     if 'accepted' not in payload['res']:
+    #         self.in_room_standby = False
+    #     else:
+    #         listener = threading.Thread(target=self.handle_server_contact, args=(), name='Server Listener')
+    #         listener.start()
+
+    # def handle_match_message(self, payload):
+    #     self.lock.acquire()
+    #     if 'is_initial_player' in payload.keys():
+    #         is_initial_player = payload['is_initial_player'] == 'True'
+    #         self.log = 'Your turn, its pieces are the green ones at the top' if is_initial_player else 'Opponent turn, its pieces are the blue ones below'
+    #         self.match_scene = matchscene.MatchScene(self.conn_socket, is_initial_player)
+    #         self.in_game = True
+    #     else:
+    #         if payload['event'] == 'movement':
+    #             i, j = self.match_scene.get_index_coordinate(payload['from'])
+    #             piece = self.match_scene.board[i][j]
+    #             self.log = ('Soldier' if piece < 5 else 'Captain') + ' moved from ' + payload['from'] + ' to ' + payload['to']
+    #             self.match_scene.receive_move_action(_from=payload['from'], to=payload['to'])
+    #             if payload['captured']:
+    #                 i, j = self.match_scene.get_index_coordinate(payload['captured'])
+    #                 piece = self.match_scene.board[i][j]
+    #                 self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
+    #                 self.match_scene.receive_capture_action(at=payload['captured'])
+
+    #             self.match_scene.turn = int(payload['turn'])
             
-            if payload['event'] == 'rematch':
-                if payload['op'] == 'request':
-                    self.match_scene.append_chat_message('game', 'Opponent request a rematch')
-                    self.match_scene.append_chat_message('game', 'Type yes or no to answer it')
-                if payload['op'] == 'confirm':
-                    self.log = 'Match restarted'
-                    self.match_scene = matchscene.MatchScene(self.conn_socket, self.match_scene.is_initial_player)
-                if payload['op'] == 'refused':
-                    self.match_scene.append_chat_message('game', 'Request refused')
-                    self.log = 'Match ended'
+    #         if payload['event'] == 'rematch':
+    #             if payload['op'] == 'request':
+    #                 self.match_scene.append_chat_message('game', 'Opponent request a rematch')
+    #                 self.match_scene.append_chat_message('game', 'Type yes or no to answer it')
+    #             if payload['op'] == 'confirm':
+    #                 self.log = 'Match restarted'
+    #                 self.match_scene = matchscene.MatchScene(self.conn_socket, self.match_scene.is_initial_player)
+    #             if payload['op'] == 'refused':
+    #                 self.match_scene.append_chat_message('game', 'Request refused')
+    #                 self.log = 'Match ended'
 
-            if payload['event'] == 'gameover':
-                if payload['captured']:
-                    i, j = self.match_scene.get_index_coordinate(payload['captured'])
-                    piece = self.match_scene.board[i][j]
-                    self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
-                    self.match_scene.receive_capture_action(at=payload['captured'])
-                winner_index = int(payload['winner'])
-                self.log = 'Game Over! You ' + ('win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose')
-                self.match_scene.set_game_over(winner_index)
-        self.lock.release()
+    #         if payload['event'] == 'gameover':
+    #             if payload['captured']:
+    #                 i, j = self.match_scene.get_index_coordinate(payload['captured'])
+    #                 piece = self.match_scene.board[i][j]
+    #                 self.log = ('Soldier' if piece < 5 else 'Captain') + ' captured at ' + payload['captured']
+    #                 self.match_scene.receive_capture_action(at=payload['captured'])
+    #             winner_index = int(payload['winner'])
+    #             self.log = 'Game Over! You ' + ('win' if winner_index == (0 if self.match_scene.is_initial_player else 1) else 'lose')
+    #             self.match_scene.set_game_over(winner_index)
+    #     self.lock.release()
 
-    def handle_chat_message(self, payload):
-        self.match_scene.receive_message(payload['msg'])
+    # def handle_chat_message(self, payload):
+    #     self.match_scene.receive_message(payload['msg'])
 
-    def handle_server_contact(self):
-        import select
-        from game import message
-        messenger = message.GameMessage()
-        while True:
-            inputs, _, _ = select.select([self.conn_socket], [], [])
-            for ipt in inputs:
-                data = ipt.recv(1024)
-                if data:
-                    module, payload = messenger.decode(data)
-                    if module == 'ROOM':
-                        return self.handle_room_message(payload)
-                    if module == 'MATCH':
-                        self.handle_match_message(payload)
-                    if module == 'CHAT':
-                        self.handle_chat_message(payload)
-                    if 'exception' in payload.keys():
-                        self.log = payload['exception'] 
-                else:
-                    self.conn_socket.close()
+    # def handle_server_contact(self):
+    #     import select
+    #     from game import message
+    #     messenger = message.GameMessage()
+    #     while True:
+    #         inputs, _, _ = select.select([self.conn_socket], [], [])
+    #         for ipt in inputs:
+    #             data = ipt.recv(1024)
+    #             if data:
+    #                 module, payload = messenger.decode(data)
+    #                 if module == 'ROOM':
+    #                     return self.handle_room_message(payload)
+    #                 if module == 'MATCH':
+    #                     self.handle_match_message(payload)
+    #                 if module == 'CHAT':
+    #                     self.handle_chat_message(payload)
+    #                 if 'exception' in payload.keys():
+    #                     self.log = payload['exception'] 
+    #             else:
+    #                 self.conn_socket.close()
 
     def handle_room_action(self):
         if not self.room_name or not self.room_password:
             return
         import getpass
-        from game import message
+    #     from game import message
         try:
             username = getpass.getuser()
-            data = message.GameMessage().encode({
-                "action": self.room_mode.lower(),
-                'name': username if username else 'Random',
-                'room': self.room_name,
-                'password': self.room_password
-            }, 'ROOM')
-            self.conn_socket.send(data)
-            self.in_room_standby = True
-            self.handle_server_contact()
+            mode = self.room_mode.lower()
+            if mode == 'create':
+                is_created, msg = self.service.create_room(self.identifier, username, self.room_name, self.room_password)
+                if is_created:
+                    self.in_room_standby = True
+                    self.log = msg
+            if mode == 'join':
+                is_joined, msg = self.service.join_room(self.identifier, username, self.room_name, self.room_password)
+                self.log = msg + (' Connecting...' if is_joined else '')
+    #         data = message.GameMessage().encode({
+    #             "action": self.room_mode.lower(),
+    #             'name': username if username else 'Random',
+    #             'room': self.room_name,
+    #             'password': self.room_password
+    #         }, 'ROOM')
+    #         self.conn_socket.send(data)
+    #         self.handle_server_contact()
         except Exception as m:
             self.log = str(m)
 

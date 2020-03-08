@@ -2,6 +2,7 @@ import logging
 import select
 from threading import Thread
 import random
+from xmlrpc.client import ServerProxy
 from . import message, match
 
 class Chat:
@@ -21,8 +22,15 @@ class Room(Thread):
         self.players = players
         players_keys = list(players.keys())
         random.shuffle(players_keys)
-        self.bizingo_match = match.Match(players_keys)
-        self.chat = Chat(players_keys)
+
+        self.client_services = {}
+        for player_id in players_keys:
+            proxy = ServerProxy('http://' + self.players[player_id]['addr'][0] + ':' + str(self.players[player_id]['addr'][1]))
+            self.client_services[player_id] = proxy
+
+        clients = [self.client_services[players_keys[0]], self.client_services[players_keys[1]]]
+        self.bizingo_match = match.Match(clients)
+        self.chat = Chat(clients)
         self.message = message.GameMessage()
     
     def receive_data(self, data, from_player):
@@ -76,23 +84,29 @@ class Room(Thread):
     def run(self):
         logging.debug(self.getName() + ' started')
         for player in self.bizingo_match.players:
-            player.send(
-                self.message.encode({
-                    'info': 'Bem Vindo a Bizingo!',
-                    'is_initial_player': self.bizingo_match.players.index(player) == 0
-                }, 'MATCH')
-            )
+            print(player.setup_match(self.bizingo_match.players.index(player) == 0))
+        # for player in self.bizingo_match.players:
+        #     player.send(
+        #         self.message.encode({
+        #             'info': 'Bem Vindo a Bizingo!',
+        #             'is_initial_player': self.bizingo_match.players.index(player) == 0
+        #         }, 'MATCH')
+        #     )
+        
         while True:
-            read_connections, _, _ = select.select(list(self.players.keys()), [], [])
-            for player in read_connections:
-                try:
-                    message = player.recv(1024)
-                    if message:
-                        self.receive_data(message, from_player=player)
-                    else:
-                        return self.remove_player(player)
-                except Exception as m:
-                    logging.error(str(m))
-                except:
-                    logging.warn('Some Exception occurred')
-                    continue
+            pass
+            # read_connections, _, _ = select.select(list(self.players.keys()), [], [])
+            # for player in read_connections:
+            #     try:
+            #         message = player.recv(1024)
+            #         if message:
+            #             logging.debug('Message received')
+            #             # self.receive_data(message, from_player=player)
+            #         else:
+            #             logging.debug('Disconnection')
+            #             # return self.remove_player(player)
+            #     except Exception as m:
+            #         logging.error(str(m))
+            #     except:
+            #         logging.warn('Some Exception occurred')
+            #         continue
