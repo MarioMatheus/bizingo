@@ -186,6 +186,18 @@ def giveup_the_match(user_id):
         return room.receive_match_msg({ 'action': 'giveup' }, user_id)
     return ('',)
 
+def request_rematch(user_id):
+    room = get_room_where_user_is(user_id)
+    if room:
+        return room.receive_match_msg({ 'action': 'rematch', 'op': 'request' }, user_id)
+    return False
+
+def reply_rematch(user_id, reply):
+    room = get_room_where_user_is(user_id)
+    if room:
+        return room.receive_match_msg({ 'action': 'rematch', 'op': reply }, user_id)
+    return ()
+
 def generate_id():
     from uuid import uuid4
     return str(uuid4())
@@ -214,6 +226,8 @@ def create_rpc_server():
         rpc_server.register_function(join_room)
         rpc_server.register_function(send_message)
         rpc_server.register_function(giveup_the_match)
+        rpc_server.register_function(request_rematch)
+        rpc_server.register_function(reply_rematch)
 
         try:
             logging.info('RPC Server on')

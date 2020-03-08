@@ -61,14 +61,21 @@ class Room(Thread):
                 if payload['op'] == 'request':
                     for p in self.bizingo_match.players:
                         if p != player:
-                            self.broadcast({'event': 'rematch', 'op': 'request'}, to_player=p)
+                            return p.request_rematch()
+                            # self.broadcast({'event': 'rematch', 'op': 'request'}, to_player=p)
                 if payload['op'] == 'yes':
                     self.bizingo_match = match.Match(self.bizingo_match.players)
                     logging.info('Match Restarted')
-                    self.broadcast({'event': 'rematch', 'op': 'confirm'})
+                    for player in self.bizingo_match.players:
+                        _ = player.reply_rematch('confirm')
+                    return ()
+                    # self.broadcast({'event': 'rematch', 'op': 'confirm'})
                 if payload['op'] == 'no':
                     logging.info('Match Ended')
-                    self.broadcast({'event': 'rematch', 'op': 'refused'})
+                    for player in self.bizingo_match.players:
+                        _ = player.reply_rematch('refused')
+                    return ()
+                    # self.broadcast({'event': 'rematch', 'op': 'refused'})
         except Exception as identifier:
             self.broadcast({ 'exception': str(identifier) }, to_player=player)
             logging.warning('Exception occurred ' + str(identifier))

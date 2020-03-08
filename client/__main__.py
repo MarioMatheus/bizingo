@@ -279,6 +279,21 @@ class BizingoGame(arcade.Window):
         self.match_scene.set_game_over(is_winner)
         return ()
 
+    def request_rematch(self):
+        self.match_scene.append_chat_message('game', 'Opponent request a rematch')
+        self.match_scene.append_chat_message('game', 'Type /yes or /no to answer it')
+        self.match_scene.is_rematch_request = True
+        return True
+
+    def reply_rematch(self, reply):
+        if reply == 'confirm':
+            self.log = 'Match restarted'
+            self.match_scene = matchscene.MatchScene(self.identifier, self.service, self.match_scene.is_initial_player)
+        if reply == 'refused':
+            self.match_scene.append_chat_message('game', 'Request refused')
+            self.log = 'Match ended'
+        return ()
+
     def create_rpc_client_server(self):
         with SimpleXMLRPCServer(('localhost', 0)) as rpc_server:
             rpc_server.register_introspection_functions()
@@ -287,6 +302,8 @@ class BizingoGame(arcade.Window):
                 rpc_server.register_function(self.setup_match)
                 rpc_server.register_function(self.send_message)
                 rpc_server.register_function(self.set_game_over)
+                rpc_server.register_function(self.request_rematch)
+                rpc_server.register_function(self.reply_rematch)
 
                 self.lock.acquire()
                 self.identifier = self.service.request_identifier(rpc_server.socket.getsockname())

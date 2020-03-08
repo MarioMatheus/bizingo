@@ -31,6 +31,8 @@ class MatchScene:
         self.half_width = SCREEN_WIDTH/2
         self.half_height = SCREEN_HEIGHT/2
 
+        self.is_rematch_request = False
+
         self.chat_msg_buffer = ''
         self.chat_messages = [
             ('game', 'Type /giveup to give up the match'),
@@ -141,9 +143,11 @@ class MatchScene:
                 # self.connection.send(GameMessage().encode({'action': 'giveup'}, 'MATCH'))
                 _ = self.connection.giveup_the_match(self.identifier)
             elif self.game_over and message == '/rematch':
-                self.connection.send(GameMessage().encode({'action': 'rematch', 'op': 'request'}, 'MATCH'))
-            elif self.game_over and message in ['yes', 'no']:
-                self.connection.send(GameMessage().encode({'action': 'rematch', 'op': message}, 'MATCH'))
+                _ = self.connection.request_rematch(self.identifier)
+                # self.connection.send(GameMessage().encode({'action': 'rematch', 'op': 'request'}, 'MATCH'))
+            elif self.game_over and self.is_rematch_request and message in ['/yes', '/no']:
+                _ = self.connection.reply_rematch(self.identifier, message[1:])
+                # self.connection.send(GameMessage().encode({'action': 'rematch', 'op': message}, 'MATCH'))
             else:
                 _ = self.connection.send_message(self.identifier, message)
 
