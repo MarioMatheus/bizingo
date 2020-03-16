@@ -62,20 +62,17 @@ class Room(Thread):
                     for p in self.bizingo_match.players:
                         if p != player:
                             return p.request_rematch()
-                            # self.broadcast({'event': 'rematch', 'op': 'request'}, to_player=p)
                 if payload['op'] == 'yes':
                     self.bizingo_match = match.Match(self.bizingo_match.players)
                     logging.info('Match Restarted')
                     for player in self.bizingo_match.players:
                         _ = player.reply_rematch('confirm')
                     return ()
-                    # self.broadcast({'event': 'rematch', 'op': 'confirm'})
                 if payload['op'] == 'no':
                     logging.info('Match Ended')
                     for player in self.bizingo_match.players:
                         _ = player.reply_rematch('refused')
                     return ()
-                    # self.broadcast({'event': 'rematch', 'op': 'refused'})
         except Exception as identifier:
             self.broadcast({ 'exception': str(identifier) }, to_player=player)
             logging.warning('Exception occurred ' + str(identifier))
@@ -95,28 +92,5 @@ class Room(Thread):
         logging.debug(self.getName() + ' started')
         for player in self.bizingo_match.players:
             print(player.setup_match(self.bizingo_match.players.index(player) == 0))
-        # for player in self.bizingo_match.players:
-        #     player.send(
-        #         self.message.encode({
-        #             'info': 'Bem Vindo a Bizingo!',
-        #             'is_initial_player': self.bizingo_match.players.index(player) == 0
-        #         }, 'MATCH')
-        #     )
-        
         while True:
             pass
-            # read_connections, _, _ = select.select(list(self.players.keys()), [], [])
-            # for player in read_connections:
-            #     try:
-            #         message = player.recv(1024)
-            #         if message:
-            #             logging.debug('Message received')
-            #             # self.receive_data(message, from_player=player)
-            #         else:
-            #             logging.debug('Disconnection')
-            #             # return self.remove_player(player)
-            #     except Exception as m:
-            #         logging.error(str(m))
-            #     except:
-            #         logging.warn('Some Exception occurred')
-            #         continue

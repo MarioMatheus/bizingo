@@ -161,7 +161,6 @@ class Match:
         self.winner = self.players[winner_index]
         self.game_over = True
         logging.info('Game Over! Winner: Player ' + str(winner_index+1))
-        # self.broadcast({ 'event': 'gameover', 'captured': captured_piece, 'winner': str(winner_index) })
         for player in self.players:
             _ = player.set_game_over(captured_piece, self.winner == player)
         return ()
@@ -196,13 +195,6 @@ class Match:
         self.turn += 1
         for player in self.players:
             _ = player.move_piece(_from, to, captured_piece, self.turn)
-        # self.broadcast({
-        #     'event': 'movement',
-        #     'from': _from,
-        #     'to': to,
-        #     'captured': captured_piece,
-        #     'turn': str(self.turn)
-        # })
         logging.info('BC::Move piece from ' + _from + ' to ' + to + ' | Captured '+ captured_piece + ' | Turn ' + str(self.turn))
         return ()
 
